@@ -1,5 +1,7 @@
 # Planet Express — service + database
 
+[![ci](https://github.com/selama1/postman-interview/actions/workflows/ci.yml/badge.svg)](https://github.com/selama1/postman-interview/actions/workflows/ci.yml)
+
 A PostgreSQL database and a TypeScript (Fastify) backend service, both containerised and started
 with one command. The scaffolding is in place: query builder, migrations, config validation,
 structured logging, error conventions, OpenAPI and a live-DB test harness. There is no business
@@ -139,6 +141,8 @@ pnpm db:test:up         # throwaway Postgres for the integration tests (host por
 pnpm test               # typecheck + unit + integration
 pnpm test:e2e           # rebuild + journey + e2e suite against the stack
 pnpm verify             # same check as curl /health/db, exit code 0 only when connected
+pnpm preflight          # go/no-go checklist before a demo (add --quick to skip the test suite)
+pnpm warm               # pull/build/prime everything so the stack starts without network
 pnpm dev                # service with hot reload against the compose DB
 pnpm migrate:make <name>
 ```

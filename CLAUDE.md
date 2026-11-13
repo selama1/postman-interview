@@ -217,8 +217,10 @@ or not, gets exactly one of two outcomes:
   `/mnt/c` (line-ending churn).
 - **WSL idles out** when no Windows-side wsl process is alive, stopping dockerd → containers stop.
   (2026-11-13: `db` vanished mid-session; `api` restarted, `db` didn't.) Fixed with
-  `restart: unless-stopped` on all services; for long sessions keep a `wsl -e sleep infinity`
-  running in a background terminal.
+  `restart: unless-stopped` on all services, and `scripts/dc.mjs` now starts a detached keep-alive
+  (`pe-keepalive`) on any up/start through WSL, so `pnpm up` covers it. `pnpm preflight` checks it.
+- **Before the live session:** `pnpm warm` (once, on good Wi-Fi: images and pnpm store local,
+  the stack starts offline), then `pnpm preflight` that morning (go/no-go with fixes).
 - **PowerShell 5.1 file writes corrupt UTF-8** (`Set-Content` = ANSI; em dash → `â€”`). Write files
   with the Write/Edit tools or Python with `encoding='utf-8', newline=''` — never PowerShell.
 - `process.exit()` right after `fetch` on Windows can trip a libuv assertion (exit 127): set

@@ -9,6 +9,9 @@ alone doesn't prevent. Process rules live in CLAUDE.md; procedures in .claude/sk
     pnpm install
     pnpm up                      # docker compose up -d --build --wait  (db + api, migrations run on start)
     pnpm verify                  # proves service <-> Postgres: GET /health/db
+    pnpm smoke                   # fresh-machine smoke test, Docker + curl only, diagnoses failures
+    pnpm preflight [--quick]     # go/no-go for the live session (repo, toolchain, docker, stack, smoke, tests)
+    pnpm warm                    # once, on good Wi-Fi: images + pnpm store local, stack starts offline
     pnpm db:test:up              # throwaway Postgres for integration tests (port 55432)
     pnpm test                    # typecheck + unit + integration (live DB, fresh DB per test)
     pnpm test:e2e                # rebuild image, run journey + e2e suite against the stack

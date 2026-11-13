@@ -1,0 +1,51 @@
+# CI on a clean Ubuntu machine: the same two paths an interviewer or a fresh laptop would take.
+#   smoke  - Docker + curl only (no Node): clone, sh scripts/smoke.sh --failover
+#   test   - the developer path: typecheck + unit + integration (live Postgres), then e2e against
+#            the rebuilt compose stack
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: smoke (Docker + curl only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Smoke test a fresh clone, including DB outage and recovery
+        run: sh scripts/smoke.sh --failover
+      - name: Container logs on failure
+        if: failure()
+        run: docker compose logs --no-color api db
+
+  test:
+    name: test (unit + integration + e2e)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm (pinned by packageManager)
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Start the test database
+        run: pnpm db:test:up
+      - name: Typecheck + unit + integration
+        run: pnpm test
+      - name: e2e against the rebuilt compose stack
+        run: pnpm test:e2e
+      - name: Container logs on failure
+        if: failure()
+        run: docker compose --profile test logs --no-color

@@ -32,6 +32,9 @@
     "data:profile": "tsx --env-file-if-exists=.env scripts/data/profile.ts",
     "probe:hammer": "tsx scripts/probes/hammer.ts",
     "verify": "node scripts/verify.mjs",
+    "preflight": "node scripts/preflight.mjs",
+    "warm": "node scripts/warm.mjs",
+    "smoke": "sh scripts/smoke.sh",
     "docs:check": "tsx scripts/docs-check.ts",
     "prepare": "node scripts/install-git-hooks.mjs",
     "db:types": "pnpm --filter service exec kysely-codegen --dialect postgres --url postgres://app:app@localhost:15432/app --out-file src/db/generated.ts"
