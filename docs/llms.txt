@@ -126,6 +126,9 @@ Every route must be listed here (`pnpm docs:check` enforces it).
   with per-test sessions (CLAUDE.md §2c, skill `client-surface`).
 - When API keys are added, keys are environment-scoped (live vs test) and test mode is gated by
   the key, not only by `TEST_SESSIONS_ENABLED` (CLAUDE.md §2d). Not implemented yet by design.
+  When it exists, every test layer authenticates with a test key (`TEST_API_KEY`, checked to be
+  `sk_test_` in global setup). The key gate and the session give two independent layers against
+  tests writing to production.
 
 ### Config / logging
 - New setting -> `config.ts` schema with a safe default + `.env.example` line.

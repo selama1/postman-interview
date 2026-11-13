@@ -21,6 +21,12 @@ assertions hold. Manual: `curl -X POST localhost:3000/_test/sessions` then add
 `-H 'x-test-session: <id>'` to any request. Any SDK/CLI/Postman collection ships with a
 `testSession` option and is tested the same way — skill `client-surface`.
 
+**Test key (once auth exists, CLAUDE.md §2d):** e2e, the journey and client tests send a
+`sk_test_` key from `TEST_API_KEY` on every request, as well as the session header. Then a
+request that loses its session (bug, blank variable) is refused with 403 instead of reaching
+real data. `e2e-global-setup` and `e2e-journey.mjs` check the key prefix first and exit with the
+fix if it is live or missing.
+
 ## Extending the journey for a new feature
 In `scripts/e2e-journey.mjs` under "feature journeys", walk the flow as a client would:
 create what you read (unique names: `${Date.now()}`), then list/filter/page, then the error path.

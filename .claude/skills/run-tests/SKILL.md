@@ -9,6 +9,9 @@ description: Choose and run the right test layer (unit, live integration, e2e), 
 - Test DB up: `pnpm db:test:up` (compose `db-test`, port 55432). If it's down the integration
   global setup FAILS with that exact fix — tests are never skipped.
 - Windows: docker lives in WSL. If containers vanished, WSL idled out → rerun the up command.
+- Once API keys exist (CLAUDE.md §2d): tests authenticate only with a **test key** from
+  `TEST_API_KEY`. Global setup refuses to start on a missing or `sk_live_` key. Never "fix" that
+  by pointing it at a live key or setting `allowLiveKey`.
 
 ## Pick the layer
 | situation | command |

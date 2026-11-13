@@ -24,6 +24,9 @@ them. Newest first. Format:
   - Separate test deployment only: no per-request guarantee.
 - Decided by: user (requirement and model). The `/_test/*`-needs-test-key tightening was
   proposed by Claude.
+- Addendum (user, same day): all test layers authenticate with a test key, in addition to test
+  sessions, as an extra layer against tests writing to production. Setup refuses live or
+  missing keys.
 - Consequences: CLAUDE.md §2c/§2d and skill `client-surface`. Revisit if the session's auth
   model (e.g. per-actor roles) needs a different credential shape. The env axis still applies.
 

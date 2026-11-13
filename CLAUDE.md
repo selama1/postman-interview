@@ -56,9 +56,21 @@ When auth is added, every key carries an environment in its prefix and record
   that test sessions create, or are created inside one, are always `test`.
 - Clients refuse a live key for test-session work unless explicitly overridden (`allowLiveKey`),
   and warn when a test key is configured without a session.
+- **Tests authenticate with a test key, always** (integration, e2e, scenarios, SDK/CLI/Postman
+  tests, probes). This gives two independent layers: the session isolates the data, and the key
+  makes the server refuse anything outside a session. Either layer alone stops a production write.
+  - The harness reads the key only from `TEST_API_KEY`, never from the app's own key variable,
+    and never falls back to a live key. Global setup (integration and e2e) FAILS before any test
+    runs if the key isn't `sk_test_…`. The failure names the variable and the fix ("set
+    TEST_API_KEY to a test key; live keys are never used by tests"). Test suites never set
+    `allowLiveKey`.
+  - Integration tests mint their test key inside each fresh DB. e2e gets one from `.env`.
+  - A test that must exercise live-key behaviour (e.g. "live key on `/_test/*` → 403") mints that
+    key inside its own isolated DB or session. It is never a real production key.
 - **Why:** a test suite or a mis-set environment variable must never be able to mutate production
   data or trigger real side effects (emails, webhooks). Making "test" a property of the credential
-  means the failure is a loud 403, not silent writes to real data.
+  means the failure is a loud 403, not silent writes to real data. Tests are the most likely
+  source of such writes, so they get both layers (user's rule, 2026-11-13).
 - **How to apply:** don't build auth until the session needs it. When it does, implement this
   model rather than a single key type, and record the choice in `docs/decisions.md`.
 

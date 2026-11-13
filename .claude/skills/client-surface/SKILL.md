@@ -36,6 +36,9 @@ ships with test mode as a first-class option, and its own tests use it. CLAUDE.m
 ## 2. Tests for the client (live, isolated)
 - The client's tests run against the compose stack (or `startTestServer`) and open one test
   session per test via `Client.forTest(...)` — same isolation model as `useTarget()` in e2e mode.
+- Once auth exists, the client's tests authenticate with a test key from `TEST_API_KEY` only.
+  Setup refuses a missing or `sk_live_` key before any request, and no test passes
+  `allowLiveKey` (CLAUDE.md §2d).
   No HTTP mocks for anything the real server can answer.
 - Required cases, per client surface:
   1. a request with `testSession` sees only that session's data (two sessions, two views);
