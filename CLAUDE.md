@@ -122,6 +122,9 @@ rule the fix encodes; when you fix a new failure class, add a test that guards t
 - `main` = the vanilla interview submission. **Practice code never lands on main** (the
   `pre-commit` hook blocks `practice/` paths on main). Practice lives on the `practice` branch /
   `C:\devel\postman-interview-practice` worktree, one `practice/<nn>-<slug>` branch per attempt.
+- `origin` = the PUBLIC GitHub repo `selama1/postman-interview` (the submission link): `main`
+  only. **Practice work stays local, never pushed.** The `pre-push` hook blocks practice branches
+  and any commit containing `practice/`. Never bypass it with `--no-verify`; that call is the user's.
 - Commit when the work is complete and tested — don't wait to be asked. One commit per coherent
   unit. Stage only relevant files; leave `git status` clean. **Never push unless asked.**
 - Commit subject: `area: behaviour, phrased as an outcome` (e.g. `shipments: list is keyset-paginated and filterable by status`).
