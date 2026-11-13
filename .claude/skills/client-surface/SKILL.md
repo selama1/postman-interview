@@ -49,8 +49,8 @@ ships with test mode as a first-class option, and its own tests use it. CLAUDE.m
   stores `{{testSession}}`, and whose last deletes it; every request sends `x-test-session:
   {{testSession}}`. Postman sends a header even when its variable is empty, so a collection-level
   pre-request script removes the header when `testSession` is empty (production environment).
-  Today the server treats an empty header as absent → main DB; see
-  `docs/followups/2026-11-13-empty-test-session-header.md`.
+  The server answers a blank header with 400 `TEST_SESSION_INVALID`, so a forgotten variable
+  fails loudly instead of touching real data.
 
 ## 3. Where things go
 - SDK: `packages/sdk` (own `package.json`, built types, no runtime deps beyond `fetch`).

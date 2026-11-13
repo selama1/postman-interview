@@ -37,10 +37,17 @@ export function registerRequestDb(app: FastifyInstance, sessions: TestSessionMan
 
   app.addHook('onRequest', async (req, reply) => {
     const raw = req.headers[TEST_SESSION_HEADER];
-    const id = Array.isArray(raw) ? raw[0] : raw;
-    if (!id) {
+    if (raw === undefined) {
       req.db = app.db;
       return;
+    }
+    // Present but blank = an unset client variable ({{testSession}}, env var). Refuse rather than
+    // fall through to the main DB: the caller believes it is isolated. Applies whether or not test
+    // mode is enabled, since the client is misconfigured either way.
+    const id = (Array.isArray(raw) ? raw[0] : raw)?.trim();
+    if (!id) {
+      throw new AppError(400, 'TEST_SESSION_INVALID', `${TEST_SESSION_HEADER} was sent with an empty value`,
+        'Omit the header to use the main database, or set it to an id returned by POST /_test/sessions.');
     }
     if (!sessions) {
       throw new AppError(400, 'TEST_MODE_DISABLED', `${TEST_SESSION_HEADER} was sent but test mode is disabled on this server`,

@@ -76,6 +76,9 @@ if (check('test mode: POST /_test/sessions -> 201', ts.status === 201 && !!ts.js
   check('test mode: requests with x-test-session run on the session DB', sdb.json?.database === ts.json.id && sdb.json?.migrations?.pending?.length === 0, `database ${sdb.json?.database}`);
   const del = await call('DELETE', `/_test/sessions/${ts.json.id}`);
   check('test mode: DELETE /_test/sessions/:id -> 204', del.status === 204);
+  const blank = await call('GET', '/health/db', undefined, { 'x-test-session': '' });
+  check('test mode: blank x-test-session -> 400, never the main DB', blank.status === 400 && blank.json?.code === 'TEST_SESSION_INVALID',
+    `status ${blank.status} code ${blank.json?.code}`);
 }
 
 // ---- feature journeys go here --------------------------------------------------------------

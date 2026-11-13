@@ -9,6 +9,7 @@ import {
   dropDatabase,
   ensureFixtureTemplate,
   ensureTemplate,
+  quoteDb,
   retireDatabase,
   TEMPLATE_DB,
   withDatabase,
@@ -50,6 +51,7 @@ interface Cached {
   db: Kysely<Database>;
   pool: pg.Pool;
   lastUsed: number;
+  expiresAt: number;
 }
 
 export interface SessionManagerOptions {
@@ -64,6 +66,7 @@ export interface SessionManagerOptions {
 }
 
 const TRASH_PREFIX = 'tsdel_';
+const ORPHAN_TTL_MS = 24 * 60 * 60_000;
 
 export class TestSessionManager {
   private readonly admin: pg.Pool;
@@ -71,7 +74,6 @@ export class TestSessionManager {
   private reaper: NodeJS.Timeout | undefined;
   private templateReady: Promise<unknown> | undefined;
   private readonly fixtureTemplates = new Map<string, Promise<string>>();
-  private readonly fixtureOf = new Map<string, string>();
   private dropQueue: Promise<void> = Promise.resolve();
   readonly fixtures: FixtureRegistry;
 
@@ -94,14 +96,36 @@ export class TestSessionManager {
     return Number.parseInt(id.split('_')[1]!, 36) * 1000;
   }
 
-  private info(id: string): TestSessionInfo {
+  /**
+   * A session's expiry is a property of the SESSION (stored in its database comment at creation),
+   * never of whichever instance reads it: several service instances or test servers share one
+   * Postgres, and judging others' sessions by your own TTL drops live ones. A session with no
+   * metadata (a crash between CREATE and COMMENT, or a pre-metadata session) gets a conservative
+   * expiry of max(own TTL, 24 h).
+   */
+  private info(id: string, meta: string | null): TestSessionInfo {
     const c = this.createdAt(id);
-    return { id, fixture: this.fixtureOf.get(id), createdAt: new Date(c).toISOString(), expiresAt: new Date(c + this.opts.ttlMs).toISOString() };
+    let parsed: { expiresAt?: unknown; fixture?: unknown } = {};
+    try {
+      parsed = meta ? (JSON.parse(meta) as typeof parsed) : {};
+    } catch {
+      /* foreign comment: treat as no metadata */
+    }
+    const expires = typeof parsed.expiresAt === 'number' ? parsed.expiresAt : c + Math.max(this.opts.ttlMs, ORPHAN_TTL_MS);
+    const fixture = typeof parsed.fixture === 'string' ? parsed.fixture : undefined;
+    return { id, fixture, createdAt: new Date(c).toISOString(), expiresAt: new Date(expires).toISOString() };
+  }
+
+  private async lookup(where: string, params: unknown[] = []): Promise<TestSessionInfo[]> {
+    const { rows } = await this.admin.query<{ datname: string; meta: string | null }>(
+      `select datname, shobj_description(oid, 'pg_database') as meta from pg_database where ${where} order by datname`,
+      params,
+    );
+    return rows.filter((r) => SESSION_ID.test(r.datname)).map((r) => this.info(r.datname, r.meta));
   }
 
   async list(): Promise<TestSessionInfo[]> {
-    const { rows } = await this.admin.query<{ datname: string }>(`select datname from pg_database where datname ~ '^ts_' order by datname`);
-    return rows.map((r) => r.datname).filter((n) => SESSION_ID.test(n)).map((n) => this.info(n));
+    return this.lookup(`datname ~ '^ts_'`);
   }
 
   /** Sealed template for a fixture (built once per fingerprint, then cached for this process). */
@@ -129,24 +153,26 @@ export class TestSessionManager {
     }
     const id = `ts_${Math.floor(Date.now() / 1000).toString(36).padStart(6, '0')}_${randomBytes(6).toString('hex')}`;
     await cloneTemplate(this.admin, id, template);
-    if (opts.fixture) this.fixtureOf.set(id, opts.fixture);
+    // id and fixture name are validated identifiers; the JSON has no quotes to escape beyond its own.
+    const meta = JSON.stringify({ expiresAt: this.createdAt(id) + this.opts.ttlMs, ...(opts.fixture ? { fixture: opts.fixture } : {}) });
+    await this.admin.query(`comment on database ${quoteDb(id)} is '${meta.replaceAll("'", "''")}'`);
     this.opts.logger?.info({ testSession: id, fixture: opts.fixture }, 'test session created');
-    return this.info(id);
+    return this.info(id, meta);
   }
 
   /** The session's Kysely handle. Throws TestSessionError('not_found') for unknown/expired ids. */
   async resolve(id: string): Promise<Db> {
     if (!SESSION_ID.test(id)) throw new TestSessionError('not_found', `"${id}" is not a test session id`);
-    if (Date.now() - this.createdAt(id) > this.opts.ttlMs) {
-      throw new TestSessionError('not_found', `test session ${id} has expired`);
-    }
     const hit = this.cache.get(id);
     if (hit) {
+      if (Date.now() > hit.expiresAt) throw new TestSessionError('not_found', `test session ${id} has expired`);
       hit.lastUsed = Date.now();
       return hit.db;
     }
-    const { rowCount } = await this.admin.query('select 1 from pg_database where datname = $1', [id]);
-    if (!rowCount) throw new TestSessionError('not_found', `test session ${id} does not exist (deleted or expired)`);
+    const [found] = await this.lookup('datname = $1', [id]);
+    if (!found) throw new TestSessionError('not_found', `test session ${id} does not exist (deleted or expired)`);
+    const expiresAt = Date.parse(found.expiresAt);
+    if (Date.now() > expiresAt) throw new TestSessionError('not_found', `test session ${id} has expired`);
     const pool = new pg.Pool({
       connectionString: withDatabase(this.opts.adminUrl, id),
       max: this.opts.poolMax ?? 3,
@@ -155,7 +181,7 @@ export class TestSessionManager {
     });
     pool.on('error', () => {}); // connections are force-closed when the session is dropped
     const db = new Kysely<Database>({ dialect: new PostgresDialect({ pool }) });
-    this.cache.set(id, { db, pool, lastUsed: Date.now() });
+    this.cache.set(id, { db, pool, lastUsed: Date.now(), expiresAt });
     return db;
   }
 
@@ -172,7 +198,6 @@ export class TestSessionManager {
     if (!rowCount) return false;
     const trash = `${TRASH_PREFIX}${id.slice(3)}`;
     await retireDatabase(this.admin, id, trash);
-    this.fixtureOf.delete(id);
     this.enqueueDrop(trash);
     this.opts.logger?.info({ testSession: id }, 'test session deleted');
     return true;

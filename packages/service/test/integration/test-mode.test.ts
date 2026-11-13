@@ -7,7 +7,7 @@ import { sql } from 'kysely';
 import { z } from 'zod';
 import { describe, expect, it } from 'vitest';
 import { TestClient } from '../harness/client.js';
-import { openTestSession, useTarget } from '../harness/server.js';
+import { openTestSession, startTestServer, useTarget } from '../harness/server.js';
 
 // A resource-like route that writes and reads through req.db (the convention every route follows).
 const probe: FastifyPluginAsyncZod = async (app) => {
@@ -63,6 +63,17 @@ describe('test mode enabled', () => {
     const evil = new TestClient(t.baseUrl, { headers: { 'x-test-session': 'app"; drop database app; --' } });
     expect(await evil.get('/probe')).toBeProblem(404, 'TEST_SESSION_NOT_FOUND');
   });
+
+  it('a present-but-blank header is a 400 problem, never a fall-through to the main DB', async () => {
+    // An unset client variable (Postman {{testSession}}, CLI env) sends the header empty.
+    expect(await t.client.post('/probe', { v: 'real-data' })).toHaveStatus(201);
+    for (const value of ['', '   ']) {
+      const c = new TestClient(t.baseUrl, { headers: { 'x-test-session': value } });
+      expect(await c.get('/probe')).toBeProblem(400, 'TEST_SESSION_INVALID');
+      expect(await c.post('/probe', { v: 'leaked' })).toBeProblem(400, 'TEST_SESSION_INVALID');
+    }
+    expect((await t.client.get('/probe')).body.values).toEqual(['real-data']);
+  });
 });
 
 describe('test mode expiry', () => {
@@ -76,12 +87,36 @@ describe('test mode expiry', () => {
   });
 });
 
+describe('test mode: several service instances on one Postgres', () => {
+  const t = useTarget({ plugins, env: { TEST_SESSIONS_ENABLED: 'true' } }); // 60 min TTL
+
+  it("a session's expiry is its own: an instance with a shorter TTL never reaps it", async () => {
+    const s = await openTestSession(t.baseUrl);
+    await new Promise((r) => setTimeout(r, 1500));
+    // A second instance whose TTL (1.2 s) is shorter than the session's age reaps on start.
+    const other = await startTestServer({ plugins, env: { TEST_SESSIONS_ENABLED: 'true', TEST_SESSION_TTL_MIN: '0.02' } });
+    try {
+      expect(await s.client.get('/probe')).toHaveStatus(200);
+      const listed = await new TestClient(other.baseUrl).get('/_test/sessions');
+      const mine = listed.body.items.find((x: { id: string }) => x.id === s.testSession);
+      expect(Date.parse(mine.expiresAt) - Date.parse(mine.createdAt)).toBe(60 * 60_000);
+    } finally {
+      await other.close();
+    }
+  });
+});
+
 describe('test mode disabled (production default)', () => {
   const t = useTarget({ plugins, fresh: 'file' });
 
   it('a request carrying x-test-session is rejected, not served from the real DB', async () => {
     const c = new TestClient(t.baseUrl, { headers: { 'x-test-session': 'ts_000000_000000000000' } });
     expect(await c.get('/probe')).toBeProblem(400, 'TEST_MODE_DISABLED');
+  });
+
+  it('a blank header is still refused when test mode is off (the client is misconfigured)', async () => {
+    const c = new TestClient(t.baseUrl, { headers: { 'x-test-session': '' } });
+    expect(await c.get('/probe')).toBeProblem(400, 'TEST_SESSION_INVALID');
   });
 
   it('the session endpoints do not exist', async () => {
