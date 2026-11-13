@@ -116,8 +116,11 @@ Every route must be listed here (`pnpm docs:check` enforces it).
   synchronous drops measured 22 s for 40). A 300-test suite with per-test sessions ≈ 10–20 s overhead.
 - Isolation covers Postgres only. Anything else request-derived (in-memory caches, background jobs,
   outbound webhooks) must key on `req.testSession` too.
-- Clients (SDK/CLI/Postman) opt in by creating a session and sending the header — the SDK should
-  expose it as a constructor option.
+- Clients (SDK/CLI/Postman) opt in by creating a session and sending the header. Every client
+  surface ships a `testSession` option + session helpers from its first commit and tests itself
+  with per-test sessions (CLAUDE.md §2c, skill `client-surface`).
+- When API keys are added, keys are environment-scoped (live vs test) and test mode is gated by
+  the key, not only by `TEST_SESSIONS_ENABLED` (CLAUDE.md §2d). Not implemented yet by design.
 
 ### Config / logging
 - New setting -> `config.ts` schema with a safe default + `.env.example` line.
@@ -168,5 +171,5 @@ Every route must be listed here (`pnpm docs:check` enforces it).
 10. On Windows: docker runs in WSL (`pnpm dc ...`); if containers vanish, WSL idled — `pnpm up`.
 
 ## 8. Where to look next
-- Procedures: .claude/skills/{kickoff,feature,repro-test,run-tests,e2e,debug,db-inspect,data-recon,lens-review,orchestrate,followup}
+- Procedures: .claude/skills/{kickoff,feature,repro-test,run-tests,e2e,debug,db-inspect,data-recon,lens-review,orchestrate,followup,client-surface}
 - Decisions with the user: docs/decisions.md

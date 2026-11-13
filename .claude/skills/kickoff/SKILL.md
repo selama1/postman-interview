@@ -26,7 +26,9 @@ recommendation + one-line tradeoff. Typical ones:
 - money/units: numeric as string, integer minor units, unit normalisation
 - time: timestamptz, timezone of source timestamps, ambiguous date formats
 - list endpoints: keyset vs offset pagination; which filters/sorts; totals or not
-- authz/audience separation if multiple actors (API key per actor? role claim? separate routes?)
+- authz/audience separation if multiple actors (API key per actor? role claim? separate routes?).
+  If keys are introduced, they follow CLAUDE.md §2d: live vs test environment on every key.
+  Only the actor/role axis is a decision to ask about.
 - immutability/audit for regulator-facing data
 Ask them in one compact message. Record answers in `docs/decisions.md` as the user's.
 

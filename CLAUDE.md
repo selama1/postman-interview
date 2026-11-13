@@ -37,6 +37,31 @@ works for every endpoint only because handlers use `req.db`, never `app.db`.
   `req-db.static.test.ts` fails on `app.db` in routes. Non-DB state a handler keeps (caches, jobs,
   webhooks) must key on `req.testSession`.
 
+### 2c. Every client surface ships test mode by default
+Any SDK, CLI, Postman collection or example client exposes `testSession` (plus create/delete/list
+session helpers and a `forTest()` convenience) from its first commit, and its own tests run with
+one test session per test against the real server.
+- **Why:** a client without test mode can only be tested against shared state or mocks. The
+  isolation the server offers is worthless if the client can't reach it.
+- **How to apply:** skill `client-surface` (contract table, required test cases, Postman wiring).
+
+### 2d. API keys are environment-scoped: live vs test (design rule — not built yet)
+When auth is added, every key carries an environment in its prefix and record
+(`sk_live_…` / `sk_test_…`, stored as `key_env`), modelled on XCiteDB.
+- A **test key** may only touch data inside a test session: on data routes without
+  `x-test-session` → 403 `TEST_KEY_OUTSIDE_TEST_CONTEXT` (fix: create a session with
+  `POST /_test/sessions` and send the header). It may call the `/_test/*` lifecycle routes.
+- A **live key** never needs the header for live data. In deployment, `/_test/*` requires a test
+  key, which closes a gap XCiteDB left open (a live key could create test sessions there). Keys
+  that test sessions create, or are created inside one, are always `test`.
+- Clients refuse a live key for test-session work unless explicitly overridden (`allowLiveKey`),
+  and warn when a test key is configured without a session.
+- **Why:** a test suite or a mis-set environment variable must never be able to mutate production
+  data or trigger real side effects (emails, webhooks). Making "test" a property of the credential
+  means the failure is a loud 403, not silent writes to real data.
+- **How to apply:** don't build auth until the session needs it. When it does, implement this
+  model rather than a single key type, and record the choice in `docs/decisions.md`.
+
 ### 3. Never say "done/ready" without the layer that proves it
 "Done" = `pnpm test` green (typecheck rides `pretest`) **and**, for anything user-visible,
 `pnpm test:e2e` green against the rebuilt container. State which layers ran.

@@ -13,6 +13,20 @@ them. Newest first. Format:
 
 ---
 
+## 2026-11-13 — API keys, when added, are environment-scoped (live vs test); clients ship test mode
+- Context: user wants the XCiteDB model of separate deployment and test keys captured as a rule
+  now, without building auth before the live session needs it.
+- Options:
+  - Environment-scoped keys (chosen): a test key can only work inside a test session, and in
+    deployment `/_test/*` requires a test key.
+  - A single key type gated only by `TEST_SESSIONS_ENABLED`: a misconfigured client silently hits
+    real data.
+  - Separate test deployment only: no per-request guarantee.
+- Decided by: user (requirement and model). The `/_test/*`-needs-test-key tightening was
+  proposed by Claude.
+- Consequences: CLAUDE.md §2c/§2d and skill `client-surface`. Revisit if the session's auth
+  model (e.g. per-actor roles) needs a different credential shape. The env axis still applies.
+
 ## 2026-11-13 — API test mode: `x-test-session` routes a request to an isolated per-session DB
 - Context: user wants apps using the API (e2e, SDK, Postman) to test against clean data too,
   like XCiteDB's x-test-session; built as scaffolding before any business API exists.

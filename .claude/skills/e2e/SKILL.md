@@ -18,8 +18,8 @@ Flags: `--no-build` (tests-only changes), `--down` (tear down afterwards).
 (`POST /_test/sessions`, header `x-test-session`), so scenarios get an empty migrated DB on the
 real container too — no `uniq()` gymnastics, `paginationContract`-style "exactly these rows"
 assertions hold. Manual: `curl -X POST localhost:3000/_test/sessions` then add
-`-H 'x-test-session: <id>'` to any request. The SDK/CLI built live should accept a test session
-option and be tested the same way.
+`-H 'x-test-session: <id>'` to any request. Any SDK/CLI/Postman collection ships with a
+`testSession` option and is tested the same way — skill `client-surface`.
 
 ## Extending the journey for a new feature
 In `scripts/e2e-journey.mjs` under "feature journeys", walk the flow as a client would:
