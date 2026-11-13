@@ -30,24 +30,23 @@ Per anomaly class choose: **reject** (exclude + report by `_row`), **coerce** (t
 with a documented rule), or **keep raw** (nullable). Units/currency normalisation. Timezone of
 naive timestamps. Record in `docs/decisions.md`.
 
-## 4. Shape it with a migration
-```ts
-// up(): create the real table with constraints, then import with explicit casts
-await sql`
-  insert into shipments (external_id, customer_id, weight_kg, shipped_at, status)
-  select btrim(shipment_id), c.id, nullif(lower(btrim(weight_kg)), 'n/a')::numeric,
-         <date normalisation>, lower(btrim(status))
-  from staging.shipments s join customers c on c.external_id = btrim(s.customer_id)
-  where <row passes all rules>`.execute(db);
-```
-Import migrations make the container reproducible only if the raw data is in the image/volume —
-for the live session it's usually simpler to: migration = schema only; a script
-`scripts/data/import-<name>.ts` (idempotent, `on conflict do nothing`) for the data, and a
-`staging` → real-table SQL that also writes rejects to `staging.<table>_rejects(_row, reason)`.
-Say which approach you took and why.
+## 4. Shape it: migration for the schema, `importFromStaging` for the data
+Migration = the real table with constraints (`pnpm gen:resource` writes it in the house shape).
+Data = a spec file run with `pnpm data:import <spec.ts>`. It uses `importFromStaging` in
+src/db/import.ts. Write the spec from the `ImportSpec` type and its JSDoc example. Per column:
+`{ from, type, required, normalize, oneOf, check, ref, default }`, plus `key` / `onDuplicate` /
+`dateOrder`.
+- Set-based (50k rows in ~3 s) and one transaction. Every bad row lands in `import_rejects` with
+  its source row, ALL its reasons and the raw row. `import_runs` holds the counts.
+- Spec mistakes throw `IMPORT_SPEC_INVALID` before touching data, listing the valid names.
+- `dateOrder` (default MDY) and the duplicate policy are the user's decisions per dataset
+  (CLAUDE.md §6). Record them in docs/decisions.md.
+- Inspect: `select source_row, reasons, raw from import_rejects where import_id = '<id>' order by source_row`.
+- Parents before children (`ref` checks the parent table), so a spec file may export an array.
 
 ## 5. Verify
-- Row accounting: `imported + rejected = source rows` (assert it in the import script output).
+- Row accounting: `inserted + updated + rejected + skippedDuplicates = total`. The report prints
+  it, and a CHECK on `import_runs` enforces it.
 - A repro-style test for each cleaning rule (fresh DB, insert the dirty staging rows, run the
   import SQL, assert outcome) — keeps the rules honest when they change.
 - Spot-check via the API once the resource exists.

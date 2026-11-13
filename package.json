@@ -30,6 +30,7 @@
     "migrate:make": "pnpm --filter service migrate make",
     "data:load": "tsx --env-file-if-exists=.env scripts/data/load.ts",
     "data:profile": "tsx --env-file-if-exists=.env scripts/data/profile.ts",
+    "data:import": "tsx --env-file-if-exists=.env scripts/data/import.ts",
     "probe:hammer": "tsx scripts/probes/hammer.ts",
     "verify": "node scripts/verify.mjs",
     "preflight": "node scripts/preflight.mjs",

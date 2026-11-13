@@ -98,7 +98,10 @@ Every route must be listed here (`pnpm docs:check` enforces it).
 - Multi-statement invariants: `withTransaction(db, fn, { isolation })`. Read-check-write races:
   `SELECT ... FOR UPDATE`, a constraint + ON CONFLICT, or serializable + `retryOnSerializationFailure`.
 - Repos/helpers take an `Executor` (db or trx) so they compose inside transactions.
-- Raw data imports go to the `staging` schema (scripts/data/load.ts), then a migration shapes it.
+- Raw data imports go to the `staging` schema (scripts/data/load.ts). A migration creates the real
+  table, and `pnpm data:import <spec.ts>` (src/db/import.ts `importFromStaging`) fills it set-based.
+  Every bad row goes to `import_rejects` (source_row, ALL reasons, raw jsonb); `import_runs` holds
+  the counts. `normalize: 'number'` accepts "1,234.5 kg"; "12,5" is rejected, not guessed.
 
 ### Test mode (x-test-session) — every route supports it by construction
 - Handlers read the DB via **`req.db`, never `app.db`** (enforced by
