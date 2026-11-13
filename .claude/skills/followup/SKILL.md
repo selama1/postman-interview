@@ -7,8 +7,13 @@ description: Record out-of-scope work you noticed (bug, missing test, cleanup, s
 
 Format and rules: `docs/followups/README.md`. Summary:
 
+## Decide first: fix now or queue (CLAUDE.md §11). Ignoring it is not an option.
+**Small** means a clear cause, a fix of minutes, and no risk to the main task. Related or not,
+fix it now: a separate commit with its own regression test, mentioned in the final message.
+Anything else goes in the queue.
+
 ## Add
-1. Is it small (minutes) and related? → do it now instead, while the context is warm.
+1. Small? → fix it now instead (above).
 2. Dedupe: `git grep -il '<symbol or keyword>' -- docs/followups/`.
 3. Write `docs/followups/<yyyy-mm-dd>-<slug>.md` with frontmatter (title, severity
    security|correctness|dx|cleanup, size small|medium|large, area, found_by) and sections

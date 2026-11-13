@@ -36,7 +36,8 @@ Delegate full-suite runs to the `test-runner` subagent (Haiku) when you don't ne
 `pnpm test:report` compares against `.test-reports/baseline.json`:
 - **NEW** failures → yours until proven otherwise. A/B: `git stash` → rerun that file → if it
   still fails, it predates your change (record it, don't silently baseline it).
-- **KNOWN** failures → pre-existing; don't fix opportunistically unless trivial; queue it.
+- **KNOWN** failures → pre-existing, which does not mean ignorable (CLAUDE.md §11): small → fix
+  now in its own commit; otherwise make sure it is in `docs/followups/`.
 - Update the baseline only deliberately (`pnpm test:report --set-baseline`) and say so.
 - Flaky? Run the single test 5× (`--repeat=5` / loop). Flaky is a bug: usually shared state
   (missing `uniq()` on e2e), ordering assumptions without ORDER BY, or timestamps.

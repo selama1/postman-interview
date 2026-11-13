@@ -165,6 +165,24 @@ catch readers who go look.
   auth or multi-user features, and as the security lens of `lens-review`. Report what was not
   checked.
 
+### 11. Issues you find on the way: fix it now or queue it, never ignore it
+Any bug, flake, security gap, misleading error or doc drift you notice, related to the task
+or not, gets exactly one of two outcomes:
+- **Fix it now** if it is small: a clear cause, a fix of minutes, and it doesn't stall or
+  destabilise the main task. It gets its own commit and its own regression test (§7), separate
+  from the main change.
+- **Queue it** otherwise: one file in `docs/followups/` (skill `followup`), with file:line
+  evidence and a "done when".
+- **Never** drop a potentially impactful issue because "it's not mine", "it's pre-existing" or
+  "the test passed on retry". A flake is a bug until shown otherwise.
+- **Why:** user's rule across projects. (2026-11-13) a "flaky" fixtures test turned out to be a
+  reaper deleting other instances' live sessions. It was found only because the unrelated red
+  run was chased, not retried.
+- **How to apply:** list what you fixed in passing and what you queued in the final message,
+  with security items first. Don't spawn sessions or chips for follow-ups unless asked; the
+  queue is the mechanism. In a live session, say "found X, fixing it now (2 min)" or "found X,
+  queued it" so the interviewers see the triage.
+
 ---
 
 ## Orchestration (skill `orchestrate`)
@@ -192,11 +210,6 @@ catch readers who go look.
   Body: Cause/Fix (for bugs), tradeoffs taken (cite principle 5 exceptions), `Tests:` listing the
   layers/files that prove it.
 - Never commit `.env*`, data dumps (`data/raw/`), or files you haven't read.
-
-## Follow-ups go in the queue, not in new sessions
-Out-of-scope work you notice → one file `docs/followups/<yyyy-mm-dd>-<slug>.md` (skill
-`followup`). Small ones: just do them now while context is warm. List new entries in your final
-message. Don't spawn sessions/chips for follow-ups unless asked.
 
 ## Environment gotchas (Windows host)
 - Docker Engine runs **inside WSL Ubuntu**, not Windows. `pnpm dc ...` / `scripts/dc.mjs` routes
