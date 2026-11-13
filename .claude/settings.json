@@ -1,0 +1,35 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/session-brief.mjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(pnpm test*)",
+      "Bash(pnpm typecheck*)",
+      "Bash(pnpm verify*)",
+      "Bash(pnpm docs:check*)",
+      "Bash(pnpm data:profile*)",
+      "Bash(pnpm dc ps*)",
+      "Bash(pnpm dc logs*)",
+      "Bash(node scripts/dc.mjs ps*)",
+      "Bash(node scripts/dc.mjs logs*)",
+      "Bash(node scripts/verify.mjs*)",
+      "Bash(node scripts/select-tests.mjs*)",
+      "Bash(npx vitest run*)",
+      "Bash(npx tsc --noEmit*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)"
+    ]
+  }
+}
