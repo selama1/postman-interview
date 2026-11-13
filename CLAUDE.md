@@ -100,9 +100,70 @@ error semantics, auth model), anything costly to reverse. Present 2–3 options 
 recommendation; record the answer in `docs/decisions.md` as **theirs**.
 - **How to apply:** decisions already made are listed in `docs/decisions.md` — don't relitigate them.
 
-### 7. Fix the class, not the instance
-No sample-specific rules (special-casing one bad row, a regex for one value). State the general
-rule the fix encodes; when you fix a new failure class, add a test that guards the class.
+### 7. Fix the class, not the instance: root cause, idiomatic fix, permanent regression test
+Don't patch the symptom. Trace to the most general root cause and fix it the way this codebase
+already does that kind of thing: a DB constraint instead of a pre-check, the shared helper
+instead of a second copy, the central error mapping instead of a local try/catch. No
+sample-specific rules (special-casing one bad row, a regex for one value). State the general
+rule the fix encodes.
+- **Regression test at the right level, kept forever:** the minimal reproducer that failed
+  before and passes after, at the user's call path (HTTP, §1). If the root cause is pure logic,
+  add a unit test for the class too. Container, env or migration-on-start causes add an e2e
+  journey check. Never delete a regression test to get green.
+- **Why:** (2026-11-13) a test flake was really a reaper judging other instances' sessions by
+  its own TTL. Fixing "the flaky test" would have hidden a production bug. Fixing the class
+  (expiry stored with the session) removed both.
+- **How to apply:** skills `debug` → `repro-test`. Commit body: symptom → root cause → why this
+  fix is general → tests.
+
+### 8. Code shape: separated concerns, small surfaces, abstraction only at real seams
+- **Layers:** route (HTTP: schemas, status codes, actor) → service function (rules; pure where
+  possible) → repo (SQL; takes an `Executor`). Routes don't hold business rules, and repos don't
+  know HTTP. Follow `test/fixtures/widgets.ts` before inventing a new shape.
+- **Surfaces:** few, explicit, typed. Domain names, options objects over positional booleans,
+  one obvious way to do each thing.
+- **Seams:** the DB seam already exists. Kysely plus repo functions over `Executor` means
+  swapping Postgres for another SQL engine touches the dialect and repo SQL, not handlers. Don't
+  add interfaces, factories or plugin systems with one implementation "for later". In an
+  interview, name the seam and the swap cost instead of building it.
+- **DRY by knowledge, not by text:** one source of truth per fact (zod schema → validation +
+  OpenAPI + types; `config.ts`; `createDbFromConfig`; `errors.ts`). Two similar-looking
+  paths that will diverge can stay separate. A duplicated *rule* gets extracted.
+- **Why:** the interviewers read the diff live. Clear layers and named tradeoffs read as
+  judgment; speculative abstraction reads as time lost.
+
+### 9. The code is the signal (AX/DX): shape first, docs second
+Clients (humans, and AI agents writing against the API/SDK) follow the shape, not the docs.
+Names, parameter shapes, return types, discriminators and the error body are the **first line
+of defence**. `docs/llms.txt`, OpenAPI descriptions and the README are the **second**, and only
+catch readers who go look.
+- **The shape-only question:** if a client only saw the route, its schema and its error
+  responses (or the SDK signature and its JSDoc), would it write correct code? If not, fix the
+  shape before the docs.
+- **Apply it:**
+  - typed discriminators over prose (`status: 'delivered' | 'lost'`, not "check the notes field");
+  - names that encode intent and constraints;
+  - responses that name the branch taken (no silent success: `created` vs `already_existed`);
+  - refusals that name the right alternative (§4: `code` + `detail` with the exact state +
+    `fix` quoting the call to make).
+- **Triage before fixing** a reported problem (skill `triage`): server bug, gap, AX/DX issue, or
+  client misunderstanding. A misunderstanding is usually an AX/DX bug: the shape or the error
+  taught the wrong model, so fix that, not just the client.
+- **Why:** the user's XCiteDB rule ("the code is the signal"), learned from agents writing
+  `register → login` flows that broke on a branch the return type hid.
+
+### 10. Security baseline: secure while coding, quick audit on request
+- Secrets only through env and `config.ts`, never in code, logs, errors or commits. New
+  secret-bearing fields go into the logger's redaction list.
+- Raw SQL only via Kysely or `sql` templates (bound parameters). Identifiers from input only
+  through allowlists. `LIKE` input through `likeEscape`.
+- Every input is validated (zod, with bounds). No spreading of request bodies into rows.
+  Server-owned columns are never client-settable.
+- Multi-actor data: scope in the query, return 404 for others' rows, and prove it with a
+  two-actor test. RLS versus app-level scoping is the user's decision (§6).
+- **How to apply:** skill `security-audit` (10-minute time box) when asked, before presenting
+  auth or multi-user features, and as the security lens of `lens-review`. Report what was not
+  checked.
 
 ---
 

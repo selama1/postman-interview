@@ -5,7 +5,9 @@ description: Systematic debugging of wrong responses, 500s, slow endpoints, flak
 
 # Debug protocol
 
-Order matters: cheap certainty first, hypotheses second, code changes last.
+Order matters: cheap certainty first, hypotheses second, code changes last. If the report
+came from a client ("it returns the wrong thing"), run skill `triage` first. It may be a gap or
+an AX/DX issue, not a bug.
 
 ## 0. Is it even on?
 Before asking why a feature misbehaved, confirm it executed:

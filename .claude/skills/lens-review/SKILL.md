@@ -19,7 +19,8 @@ Pick the lenses that apply (3–5 is typical):
 | correctness | logic matches the stated intent; edge cases (empty, null, boundaries, duplicates, time zones) |
 | sql-perf | every query has a supporting index for its filter/sort at 100× volume; no N+1; transactions short; keyset correctness |
 | api-contract | schemas match behaviour; status codes; problem+json with code+detail+fix; pagination envelope; OpenAPI accuracy; docs/llms.txt updated |
-| security-input | injection (raw sql with user input), mass assignment, authz on every route that needs it, data leakage in errors/logs |
+| security-input | injection (raw sql with user input), mass assignment, authz on every route that needs it, data leakage in errors/logs. The checklist is skill `security-audit` §1–5 |
+| ax-dx | the shape-only question (CLAUDE.md §9): would a client get it right from route, schema and errors alone? Silent outcomes, vague `detail`, missing `fix` |
 | tests | each behaviour/error code has an HTTP-level test; tests would fail without the change; no shared-state flakiness |
 | concurrency | read-check-write races, missing constraints/locks, retry on 40001, idempotency |
 

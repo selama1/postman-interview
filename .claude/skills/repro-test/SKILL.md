@@ -44,6 +44,14 @@ Name the test after the RULE ("cancelled shipments are excluded from revenue"), 
 For a test that guards a regression class, optionally confirm red on the pre-fix tree:
 `git stash` the fix → run → red → `git stash pop` → green.
 
+## 3b. Pick the regression level (the test stays in the suite forever)
+| root cause | keep |
+|---|---|
+| anywhere | the HTTP-level repro above (always) |
+| pure logic (parsing, date/unit normalisation, cursor encoding) | + a unit test for the class, next to the function |
+| container / env / migration-on-start / compose | + a `check()` in `scripts/e2e-journey.mjs` (or a `test/e2e` case) |
+| client-visible signal (error code, `fix`, discriminator) | assert the signal itself, not just the status |
+
 ## 4. Fix, then widen
 Make it green with the general fix (CLAUDE.md §7 — fix the class). Then ask: what other inputs
 hit the same class? Add one more case if cheap. Run `pnpm test:changed`, then `pnpm test`.
