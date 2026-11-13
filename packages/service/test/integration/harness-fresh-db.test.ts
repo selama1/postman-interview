@@ -9,17 +9,21 @@ describe('fresh database per test', () => {
   const t = useTarget();
   const seen: string[] = [];
 
-  it('is migrated (baseline objects exist) and has no user tables', async () => {
+  it('is migrated (baseline objects exist) and every table is empty', async () => {
     const db = t.db!;
     seen.push(db.name);
     const [fn] = await db.query(`select count(*)::int as n from pg_proc where proname = 'set_updated_at'`);
     expect(fn!.n).toBe(1);
     const [schema] = await db.query(`select count(*)::int as n from pg_namespace where nspname = 'staging'`);
     expect(schema!.n).toBe(1);
-    const user = await db.query(
-      `select table_name from information_schema.tables where table_schema = 'public' and table_name not like 'kysely_%'`,
+    // Resource tables (migrations, e.g. from `pnpm gen:resource`) exist, but a fresh DB holds no rows in any of them.
+    const user = await db.query<{ table_name: string }>(
+      `select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' and table_name not like 'kysely_%'`,
     );
-    expect(user).toEqual([]);
+    for (const { table_name } of user) {
+      const [c] = await db.query(`select count(*)::int as n from "${table_name}"`);
+      expect(c!.n, `table ${table_name} should be empty in a fresh database`).toBe(0);
+    }
   });
 
   it('writes in one test are invisible to the next', async () => {

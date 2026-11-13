@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { healthRoutes } from './health.js';
+// @gen:route-imports
 
 /**
  * Route registry: one plugin per resource, registered here with its prefix.
@@ -9,4 +10,6 @@ import { healthRoutes } from './health.js';
  */
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   await app.register(healthRoutes);
+  // `pnpm gen:resource` registers resources above this marker; keep it.
+  // @gen:routes
 }

@@ -1,3 +1,5 @@
+// @gen:table-imports
+
 /**
  * Kysely table types. One interface per table, keyed by table name in `Database`.
  *
@@ -10,5 +12,8 @@
  *   when a dataset has many columns; then hand-tune.
  *
  * Intentionally empty in the vanilla scaffold: business tables arrive with the data.
+ * `pnpm gen:resource` inserts entries above the @gen: markers; keep them.
  */
-export interface Database {}
+export interface Database {
+  // @gen:tables
+}
