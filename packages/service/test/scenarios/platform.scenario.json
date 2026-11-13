@@ -1,0 +1,21 @@
+{
+  "name": "platform basics (JSON scenario example)",
+  "vars": {},
+  "steps": [
+    { "include": "fragments/health-ok.json" },
+    {
+      "name": "unknown route is a problem",
+      "method": "GET",
+      "path": "/no-such-route-${uniq}",
+      "expect": { "problem": [404, "ROUTE_NOT_FOUND"] }
+    },
+    {
+      "name": "request id round-trip",
+      "method": "GET",
+      "path": "/health",
+      "headers": { "x-request-id": "${uniq}" },
+      "expect": { "status": 200 },
+      "capture": { "rid": "requestId" }
+    }
+  ]
+}

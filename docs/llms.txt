@@ -1,0 +1,143 @@
+# Planet Express service — for AI coding assistants
+
+Read this top to bottom in one pass before writing code. Cap: ~400 lines. It is the orientation
+manual: what lives where, the conventions every change follows, and the pitfalls that structure
+alone doesn't prevent. Process rules live in CLAUDE.md; procedures in .claude/skills/.
+
+## 1. Quick start (paste-and-run)
+
+    pnpm install
+    pnpm up                      # docker compose up -d --build --wait  (db + api, migrations run on start)
+    pnpm verify                  # proves service <-> Postgres: GET /health/db
+    pnpm db:test:up              # throwaway Postgres for integration tests (port 55432)
+    pnpm test                    # typecheck + unit + integration (live DB, fresh DB per test)
+    pnpm test:e2e                # rebuild image, run journey + e2e suite against the stack
+
+Interviewers (no pnpm needed): `docker compose up --build`, then
+`curl http://localhost:3000/health/db`.
+
+## 2. Stack
+
+TypeScript (strict + noUncheckedIndexedAccess) · Node 24 · Fastify 5 · zod 4 via
+fastify-type-provider-zod (validation + OpenAPI from one schema) · Kysely 0.29 + pg (typed SQL,
+no ORM) · Kysely migrations · pino logs · Vitest 5 · Postgres 17 · pnpm workspace · Docker Compose.
+
+## 3. What lives where
+
+    docker-compose.yml               db (5432), api (3000), db-test (55432, profile "test")
+    Dockerfile                       multi-stage; runtime = dist/ + prod deps
+    packages/service/src/
+      main.ts                        boot: config -> db -> migrate (MIGRATE_ON_START) -> listen; graceful shutdown
+      config.ts                      ALL env vars, zod-validated (never read process.env elsewhere)
+      logger.ts                      pino options (json in containers, pretty locally, redaction)
+      db/kysely.ts                   createDbFromConfig() — the ONLY way to build the DB handle
+      db/schema.ts                   Kysely table interfaces (Database)
+      db/migrations/NNNN_*.ts        migrations (pnpm migrate:make <name>)
+      db/tx.ts                       withTransaction, retryOnSerializationFailure
+      http/app.ts                    buildApp(): plugins, error handling, swagger, routes
+      http/errors.ts                 AppError + helpers, problem+json, PG error mapping
+      http/pagination.ts             keyset + offset pagination, pageSchema
+      http/query.ts                  parseSort (allowlist), csvList, dateRange, likeEscape
+      http/routes/index.ts           route registry (one plugin per resource)
+      http/routes/health.ts          /health, /health/db
+    packages/service/test/
+      harness/                       fresh-db, server/useTarget, client, scenario runner, packs, matchers
+      fixtures/widgets.ts            REFERENCE RESOURCE — copy its shape for new resources
+      integration/                   integration-only tests (fresh DB per test)
+      scenarios/                     run on BOTH integration and e2e (*.test.ts and *.scenario.json)
+      e2e/                           e2e-only (properties of the container stack)
+    scripts/                         dc, verify, e2e(+journey), select-tests, test-report, data/*, probes/*
+    docs/                            llms.txt (this), decisions.md, followups/
+
+## 4. API surface
+
+Every route must be listed here (`pnpm docs:check` enforces it).
+
+    GET /health          liveness (no DB)
+    GET /health/db       real DB round-trip: version, database, migrations, pool stats; 503 + fix when down
+    GET /openapi.json    OpenAPI 3.1 (import into Postman: Import -> Link -> http://localhost:3000/openapi.json)
+    GET /docs            Swagger UI
+
+## 5. Conventions (every change follows these)
+
+### Adding a resource (the default shape — see test/fixtures/widgets.ts)
+1. Migration: `pnpm migrate:make create_<things>`. snake_case columns, `bigint generated always as
+   identity` ids, `timestamptz(3)` timestamps, NOT NULL by default, CHECK/UNIQUE/FK constraints
+   for every invariant the data has, indexes matching list filters/sorts (`(sort_col, id)`).
+   Attach `set_updated_at()` trigger if the table has `updated_at`.
+2. `db/schema.ts`: add the table interface (Generated<> for DB-filled columns) to `Database`.
+3. Route plugin `http/routes/<things>.ts` (FastifyPluginAsyncZod): zod Input/Patch/Output schemas,
+   a `toDto(row)` mapper (snake_case DB -> camelCase API, Date -> ISO string), register in
+   `routes/index.ts` with a prefix.
+4. Lists: `KeysetQuery.extend({...filters, sort})`, `parseSort(raw, ALLOWLIST, default)`,
+   `keysetPage(qb, opts)` + `keysetResult(...)`, response `pageSchema(Item)`.
+5. Errors: `notFound(...)`, `badRequest(code, detail, fix)`, or let constraints raise (mapped).
+6. Tests (repro-first): contract packs + journey scenario; add the flow to scripts/e2e-journey.mjs.
+7. Add routes to § 4 above; `pnpm docs:check`.
+
+### API shape
+- JSON camelCase. Lists: `{ items, nextCursor, total? }`. Create: 201 + `location` header.
+  Delete: 204. Partial update: PATCH with at-least-one-field validation.
+- Errors: `application/problem+json` — `{ type, title, status, code, detail, fix, errors?, requestId }`.
+  Validation: 400 `VALIDATION_FAILED` with `errors[{path,message}]`.
+- Mapped PG errors: 23505 -> 409 CONFLICT, 23503 -> 409 REFERENCE_VIOLATION, 23514 -> 422,
+  22P02 -> 400 INVALID_INPUT, 40001 -> 409 RETRYABLE_CONFLICT, 57014 -> 503 QUERY_TIMEOUT.
+- Every response carries `x-request-id` (caller-supplied one is honoured). Logs carry `reqId`.
+
+### Database
+- Kysely everywhere; raw `sql\`\`` for things Kysely can't express (window functions, CTE
+  reports are fine in Kysely too). Never string-concatenate user input — `sql.ref`/`sql.lit`/params.
+- Multi-statement invariants: `withTransaction(db, fn, { isolation })`. Read-check-write races:
+  `SELECT ... FOR UPDATE`, a constraint + ON CONFLICT, or serializable + `retryOnSerializationFailure`.
+- Repos/helpers take an `Executor` (db or trx) so they compose inside transactions.
+- Raw data imports go to the `staging` schema (scripts/data/load.ts), then a migration shapes it.
+
+### Config / logging
+- New setting -> `config.ts` schema with a safe default + `.env.example` line.
+- `req.log` inside handlers (carries reqId). LOG_SQL=true + LOG_LEVEL=debug logs every statement;
+  queries slower than SLOW_QUERY_MS are always logged at warn with SQL + params.
+
+## 6. Testing (details: .claude/skills/run-tests, repro-test, e2e)
+
+| layer | where | runs against | command |
+|---|---|---|---|
+| unit | src/**/*.test.ts | nothing (pure logic) | pnpm test:unit |
+| integration | test/integration, test/scenarios | db-test: NEW EMPTY migrated DB per test + real app on random port | pnpm test:int |
+| e2e | test/e2e, test/scenarios, scripts/e2e-journey.mjs | the docker compose stack | pnpm test:e2e |
+
+- `const t = useTarget(opts?)` -> `t.client` (HTTP), `t.db` (FreshDb: `.db` Kysely, `.query()` raw),
+  `t.isolated` (false on e2e: shared data — use `uniq()` names, never assume empty tables).
+  `useTarget({ fresh: 'file' })` shares one DB per file when tests are read-only.
+- Matchers: `expect(res).toHaveStatus(201)`, `expect(res).toBeProblem(404, 'NOT_FOUND')` — failures
+  print the whole exchange incl. x-request-id.
+- Packs (test/harness/packs.ts): crudContract, validationContract, paginationContract,
+  uniqueRaceContract; helpers seed(), walkPages(), race().
+- Scenario runner: steps with `${var}` interpolation, `capture`, partial `json` match, `problem`,
+  `snapshot` (scrubbed). JSON scenarios in test/scenarios/*.scenario.json with `include`.
+- Debug a test: `TEST_LOG_LEVEL=debug TEST_LOG_SQL=true npx vitest run <file> -t "<name>"`;
+  `KEEP_TEST_DB=1` keeps the test's database and prints a psql URL.
+- Inner loop: `pnpm test:changed` (import graph + scripts/test-map.tsv; unmapped -> ALL).
+  Gate: `pnpm test`. Baseline-aware run: `pnpm test:report`.
+
+## 7. Common pitfalls (structure doesn't prevent these)
+
+1. `count(*)`/bigint: parsed to number globally (db/kysely.ts). `numeric` stays STRING — money and
+   decimals: keep as string in the API or parse explicitly; never `Number()` money silently.
+2. Keyset sort columns must be NOT NULL and end with the unique id; index `(col, id)`.
+3. `timestamptz` has microsecond precision, JS Date has milliseconds: keyset cursors on a
+   timestamp column skip/duplicate rows unless the column is `timestamptz(3)`.
+4. Dates from data: profile first (`pnpm data:profile`); `01/02/2026` is ambiguous — decide and
+   record the interpretation in docs/decisions.md.
+5. Query params arrive as strings: use `z.coerce.number()` for numbers in querystring schemas only
+   (never in JSON bodies — a string "5" in a body should be a 400).
+6. Don't pre-check uniqueness in app code (race) — let the UNIQUE constraint decide (409).
+7. `ILIKE '%term%'` needs a pg_trgm GIN index to scale (`using gin (col gin_trgm_ops)`).
+8. Fastify serializes with the response schema: a field missing from the zod output schema is a
+   500 RESPONSE_SCHEMA_MISMATCH, and extra fields are stripped. Update schemas with the DTO.
+9. New migration -> the test template rebuilds automatically (content fingerprint); the running
+   container needs `pnpm up` (rebuild) to apply it.
+10. On Windows: docker runs in WSL (`pnpm dc ...`); if containers vanish, WSL idled — `pnpm up`.
+
+## 8. Where to look next
+- Procedures: .claude/skills/{kickoff,feature,repro-test,run-tests,e2e,debug,db-inspect,data-recon,lens-review,orchestrate,followup}
+- Decisions with the user: docs/decisions.md

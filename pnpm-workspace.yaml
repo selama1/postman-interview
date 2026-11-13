@@ -1,0 +1,11 @@
+packages:
+  - packages/*
+
+# Supply chain: pnpm 11 holds back freshly published versions by default
+# (minimumReleaseAge). Keep it on. If a fix needs a just-released version,
+# add a specific `pkg@version` exclude with a one-line reason; never a blanket one.
+minimumReleaseAgeExclude: []
+
+# Packages allowed to run install scripts (pnpm 11 blocks them by default).
+allowBuilds:
+  esbuild: true

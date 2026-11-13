@@ -1,0 +1,50 @@
+{
+  "name": "planet-express",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.8.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "pnpm --filter service dev",
+    "build": "pnpm --filter service build",
+    "typecheck": "pnpm -r typecheck && tsc --noEmit -p scripts/tsconfig.json",
+    "pretest": "pnpm typecheck",
+    "test": "vitest run --project unit --project integration",
+    "test:unit": "vitest run --project unit",
+    "test:int": "vitest run --project integration",
+    "test:e2e": "node scripts/e2e.mjs",
+    "test:changed": "node scripts/select-tests.mjs",
+    "test:report": "node scripts/test-report.mjs",
+    "dc": "node scripts/dc.mjs",
+    "up": "node scripts/dc.mjs up -d --build --wait",
+    "down": "node scripts/dc.mjs down",
+    "logs": "node scripts/dc.mjs logs -f --tail=200 api",
+    "db:up": "node scripts/dc.mjs up -d --wait db",
+    "db:test:up": "node scripts/dc.mjs --profile test up -d --wait db-test",
+    "db:psql": "node scripts/dc.mjs exec db psql -U app -d app",
+    "db:reset": "node scripts/dc.mjs down -v",
+    "migrate": "pnpm --filter service migrate latest",
+    "migrate:down": "pnpm --filter service migrate down",
+    "migrate:make": "pnpm --filter service migrate make",
+    "data:load": "tsx --env-file-if-exists=.env scripts/data/load.ts",
+    "data:profile": "tsx --env-file-if-exists=.env scripts/data/profile.ts",
+    "probe:hammer": "tsx scripts/probes/hammer.ts",
+    "verify": "node scripts/verify.mjs",
+    "docs:check": "tsx scripts/docs-check.ts",
+    "prepare": "node scripts/install-git-hooks.mjs",
+    "db:types": "pnpm --filter service exec kysely-codegen --dialect postgres --url postgres://app:app@localhost:5432/app --out-file src/db/generated.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
+    "csv-parse": "^7.0.3",
+    "kysely": "^0.29.8",
+    "pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0",
+    "zod": "^4.6.7"
+  }
+}

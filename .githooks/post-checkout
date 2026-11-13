@@ -1,0 +1,15 @@
+#!/bin/sh
+# Warn-only (never blocks or mutates). The text is written for the AI session reading tool
+# output as much as for a human: it states the problem AND the exact fix.
+[ "$3" = "1" ] || exit 0   # branch checkouts only
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+if [ "$branch" = "main" ] && [ -d practice ] && [ -n "$(ls -A practice 2>/dev/null)" ]; then
+  echo "post-checkout WARNING: on 'main' but a practice/ directory exists in the working tree." >&2
+  echo "  main must stay vanilla. These are untracked leftovers from a practice branch." >&2
+  echo "  Fix: git status practice/ ; if untracked, remove them (or keep using the practice worktree)." >&2
+fi
+if [ -z "$branch" ]; then
+  echo "post-checkout WARNING: HEAD is detached. Commits made now are easy to lose." >&2
+  echo "  Fix: git switch main   (or git switch -c <branch> to keep work)" >&2
+fi
+exit 0

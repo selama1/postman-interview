@@ -1,0 +1,16 @@
+#!/bin/sh
+# Invariant: `main` is the vanilla submission. Practice code (practice/) never lands on it.
+# This is the only hook that blocks; it guards the one mistake that would leak into the repo
+# the interviewers clone.
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+if [ "$branch" = "main" ]; then
+  leaked=$(git diff --cached --name-only --diff-filter=ACMR | grep '^practice/' || true)
+  if [ -n "$leaked" ]; then
+    echo "pre-commit: BLOCKED — practice files staged on main:" >&2
+    echo "$leaked" | sed 's/^/  /' >&2
+    echo "Reason: main is the vanilla interview submission; practice work lives on the 'practice' branch." >&2
+    echo "Fix: git restore --staged practice/  (then switch: git switch practice, or use the C:/devel/postman-interview-practice worktree)" >&2
+    exit 1
+  fi
+fi
+exit 0

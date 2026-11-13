@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.test-reports/*
+!.test-reports/baseline.json
+.e2e-reports/
+data/raw/
+data/out/
+practice/data/out/
+.DS_Store
+.claude/settings.local.json
+.claude/worktrees/
+.reviews/

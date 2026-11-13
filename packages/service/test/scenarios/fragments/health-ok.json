@@ -1,0 +1,6 @@
+{
+  "steps": [
+    { "name": "liveness", "method": "GET", "path": "/health", "expect": { "status": 200, "json": { "status": "ok" } } },
+    { "name": "db round-trip", "method": "GET", "path": "/health/db", "expect": { "status": 200, "json": { "status": "ok" } } }
+  ]
+}

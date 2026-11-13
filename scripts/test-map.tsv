@@ -1,0 +1,24 @@
+# pattern<TAB>action          (see scripts/select-tests.mjs)
+# actions: all | project:<unit|integration|e2e> | ignore
+# First matching rule wins. Patterns: * = one path segment, ** = any depth.
+packages/service/src/db/migrations/**	all
+packages/service/src/db/kysely.ts	all
+packages/service/src/http/app.ts	all
+packages/service/src/http/errors.ts	all
+packages/service/src/config.ts	all
+packages/service/test/harness/**	all
+packages/service/package.json	all
+package.json	all
+pnpm-lock.yaml	all
+vitest.config.ts	all
+tsconfig.base.json	all
+docker-compose.yml	project:e2e
+Dockerfile	project:e2e
+docker/**	project:e2e
+scripts/e2e*.mjs	project:e2e
+docs/**	ignore
+.claude/**	ignore
+*.md	ignore
+practice/**	ignore
+data/**	ignore
+.githooks/**	ignore
