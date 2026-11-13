@@ -60,21 +60,48 @@ export function registerRequestDb(app: FastifyInstance, sessions: TestSessionMan
   });
 }
 
-const Session = z.object({ id: z.string(), createdAt: z.string(), expiresAt: z.string() });
+const Session = z.object({ id: z.string(), fixture: z.string().optional(), createdAt: z.string(), expiresAt: z.string() });
+const CreateSession = z.object({ fixture: z.string().optional() }).nullish(); // bare POST (no body) arrives as null
 
 export const testSessionRoutes =
   (sessions: TestSessionManager): FastifyPluginAsyncZod =>
   async (app) => {
-    app.post('/sessions', { schema: { tags: ['test-mode'], summary: 'Create an isolated test database', response: { 201: Session } } }, async (_req, reply) => {
-      try {
-        return reply.code(201).send(await sessions.create());
-      } catch (err) {
-        if (err instanceof TestSessionError && err.kind === 'limit') {
-          throw new AppError(429, 'TEST_SESSION_LIMIT', err.message, 'Delete finished sessions (DELETE /_test/sessions/:id) or wait for expiry.');
+    app.post(
+      '/sessions',
+      {
+        schema: {
+          tags: ['test-mode'],
+          summary: 'Create an isolated test database (optionally from a named fixture)',
+          body: CreateSession,
+          response: { 201: Session },
+        },
+      },
+      async (req, reply) => {
+        try {
+          return reply.code(201).send(await sessions.create({ fixture: req.body?.fixture }));
+        } catch (err) {
+          if (err instanceof TestSessionError && err.kind === 'unknown_fixture') {
+            throw new AppError(400, 'UNKNOWN_FIXTURE', err.message, 'List fixtures with GET /_test/fixtures; define new ones in src/testing/fixtures.ts.');
+          }
+          if (err instanceof TestSessionError && err.kind === 'limit') {
+            throw new AppError(429, 'TEST_SESSION_LIMIT', err.message, 'Delete finished sessions (DELETE /_test/sessions/:id) or wait for expiry.');
+          }
+          throw err;
         }
-        throw err;
-      }
-    });
+      },
+    );
+
+    app.get(
+      '/fixtures',
+      {
+        schema: {
+          tags: ['test-mode'],
+          summary: 'List named fixtures',
+          response: { 200: z.object({ items: z.array(z.object({ name: z.string(), description: z.string() })) }) },
+        },
+      },
+      async () => ({ items: Object.entries(sessions.fixtures).map(([name, f]) => ({ name, description: f.description })) }),
+    );
 
     app.get('/sessions', { schema: { tags: ['test-mode'], summary: 'List test sessions', response: { 200: z.object({ items: z.array(Session) }) } } }, async () => ({
       items: await sessions.list(),

@@ -2,7 +2,8 @@ import { Kysely, PostgresDialect } from 'kysely';
 import pg from 'pg';
 import { inject } from 'vitest';
 import type { Database } from '../../src/db/schema.js';
-import { cloneTemplate, dropDatabase } from '../../src/db/template.js';
+import { cloneTemplate, dropDatabase, ensureFixtureTemplate, type FixtureRegistry } from '../../src/db/template.js';
+import { fixtures as defaultFixtures } from '../../src/testing/fixtures.js';
 import { testEnv, withDatabase } from './env.js';
 
 /**
@@ -28,9 +29,31 @@ function admin(): pg.Pool {
   return adminPool;
 }
 
-export async function freshDb(): Promise<FreshDb> {
+const fixtureTemplates = new Map<string, Promise<string>>();
+
+/** Sealed template for a named fixture: seeded once per fingerprint, cloned per test. */
+function fixtureTemplate(name: string, registry: FixtureRegistry): Promise<string> {
+  const fx = registry[name];
+  if (!fx) throw new Error(`unknown fixture "${name}"; known: ${Object.keys(registry).join(', ') || '(none)'}. Define it in src/testing/fixtures.ts.`);
+  let p = fixtureTemplates.get(name);
+  if (!p) {
+    p = ensureFixtureTemplate(admin(), inject('adminUrl'), name, fx);
+    fixtureTemplates.set(name, p);
+  }
+  return p;
+}
+
+export interface FreshDbOptions {
+  /** Start from a named fixture instead of an empty DB (same per-test cost). */
+  fixture?: string | undefined;
+  /** Fixture registry override (default src/testing/fixtures.ts). */
+  fixtures?: FixtureRegistry | undefined;
+}
+
+export async function freshDb(opts: FreshDbOptions = {}): Promise<FreshDb> {
   const name = `t_${inject('runId')}_${process.pid}_${++counter}`;
-  await cloneTemplate(admin(), name, inject('templateDb'));
+  const template = opts.fixture ? await fixtureTemplate(opts.fixture, opts.fixtures ?? defaultFixtures) : inject('templateDb');
+  await cloneTemplate(admin(), name, template);
   const url = withDatabase(inject('adminUrl'), name);
   const pool = new pg.Pool({ connectionString: url, max: 10 });
   // Idle clients get terminated when the DB is force-dropped; don't let that crash the worker.

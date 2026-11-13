@@ -57,7 +57,8 @@ Every route must be listed here (`pnpm docs:check` enforces it).
     GET /health/db       real DB round-trip: version, database, migrations, pool stats; 503 + fix when down
     GET /openapi.json    OpenAPI 3.1 (import into Postman: Import -> Link -> http://localhost:3000/openapi.json)
     GET /docs            Swagger UI
-    POST /_test/sessions        test mode: create an isolated, empty, migrated DB -> { id, createdAt, expiresAt }
+    POST /_test/sessions        test mode: create an isolated, migrated DB -> { id, fixture?, createdAt, expiresAt }; body {"fixture":"<name>"} optional
+    GET /_test/fixtures         test mode: list named fixtures (initial states)
     GET /_test/sessions         test mode: list sessions
     DELETE /_test/sessions/:id  test mode: drop a session's DB
     (any route) + header `x-test-session: <id>` -> runs against that session's DB
@@ -105,6 +106,14 @@ Every route must be listed here (`pnpm docs:check` enforces it).
   reaper every 60 s. State is in Postgres, so sessions survive a service restart.
 - `TEST_SESSIONS_ENABLED=true` in compose (dev/demo stack); default false. If disabled, a request
   that carries the header gets 400 TEST_MODE_DISABLED — never silently served from real data.
+- **Fixtures** (src/testing/fixtures.ts): named initial states. A fixture's `seed(db)` runs ONCE into
+  a sealed template `fx_<name>` (fingerprint = migrations + seed source + `version`); every session
+  or test then clones it — same ~75 ms as an empty DB regardless of fixture size. Use:
+  `POST /_test/sessions {"fixture":"small_fleet"}` or `useTarget({ fixture: 'small_fleet' })`.
+  Seed with bulk SQL, deterministic values (tests assert exact numbers).
+- Cost model (measured on the compose stack): create ≈ 75 ms sequential / 40 parallel in ≈ 1.5 s;
+  DELETE is instant (rename out of the namespace; DROP runs in a serialized background queue —
+  synchronous drops measured 22 s for 40). A 300-test suite with per-test sessions ≈ 10–20 s overhead.
 - Isolation covers Postgres only. Anything else request-derived (in-memory caches, background jobs,
   outbound webhooks) must key on `req.testSession` too.
 - Clients (SDK/CLI/Postman) opt in by creating a session and sending the header — the SDK should

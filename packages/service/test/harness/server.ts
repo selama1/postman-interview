@@ -4,6 +4,7 @@ import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import { loadConfig } from '../../src/config.js';
 import { createDbFromConfig } from '../../src/db/kysely.js';
 import { buildApp } from '../../src/http/app.js';
+import type { FixtureRegistry } from '../../src/db/template.js';
 import { TestSessionManager } from '../../src/testing/sessions.js';
 import { TestClient } from './client.js';
 import { testEnv } from './env.js';
@@ -16,6 +17,10 @@ export interface TestServerOptions {
   setup?: (db: FreshDb) => Promise<void>;
   /** Config overrides (string values, as env vars would be). */
   env?: Record<string, string>;
+  /** Start every test from this named fixture instead of an empty DB (both targets). */
+  fixture?: string;
+  /** Fixture registry override (default src/testing/fixtures.ts) — integration target only. */
+  fixtures?: FixtureRegistry;
 }
 
 export interface TestServer {
@@ -32,7 +37,7 @@ export interface TestServer {
  * the pg pool behave exactly as in the container.
  */
 export async function startTestServer(opts: TestServerOptions = {}): Promise<TestServer> {
-  const db = await freshDb();
+  const db = await freshDb({ fixture: opts.fixture, fixtures: opts.fixtures });
   try {
     await opts.setup?.(db);
     const config = loadConfig(
@@ -43,7 +48,12 @@ export async function startTestServer(opts: TestServerOptions = {}): Promise<Tes
     const conn = createDbFromConfig(config, logger); // same wiring as src/main.ts
     let testSessions: TestSessionManager | undefined;
     if (config.TEST_SESSIONS_ENABLED) {
-      testSessions = new TestSessionManager({ adminUrl: db.url, ttlMs: config.TEST_SESSION_TTL_MIN * 60_000, maxSessions: config.TEST_SESSIONS_MAX });
+      testSessions = new TestSessionManager({
+        adminUrl: db.url,
+        ttlMs: config.TEST_SESSION_TTL_MIN * 60_000,
+        maxSessions: config.TEST_SESSIONS_MAX,
+        ...(opts.fixtures ? { fixtures: opts.fixtures } : {}),
+      });
       await testSessions.start();
     }
     const app = await buildApp({
@@ -109,7 +119,7 @@ export function useTarget(opts: TestServerOptions & { fresh?: 'each' | 'file'; s
     if (opts.setup || opts.plugins) {
       throw new Error('useTarget: fixture setup/plugins only exist in-process; put this test in test/integration/, not test/scenarios/.');
     }
-    const open = async () => Object.assign(t, await openTestSession(testEnv.e2eBaseUrl));
+    const open = async () => Object.assign(t, await openTestSession(testEnv.e2eBaseUrl, opts.fixture));
     const close = async () => {
       if (t.testSession) await new TestClient(t.baseUrl).delete(`/_test/sessions/${t.testSession}`);
     };
@@ -127,9 +137,9 @@ export function useTarget(opts: TestServerOptions & { fresh?: 'each' | 'file'; s
   return t;
 }
 
-/** Create an API test session on a running server; returns a client bound to it. */
-export async function openTestSession(baseUrl: string) {
-  const res = await new TestClient(baseUrl).post<{ id: string }>('/_test/sessions');
+/** Create an API test session (optionally from a named fixture) on a running server; returns a client bound to it. */
+export async function openTestSession(baseUrl: string, fixture?: string) {
+  const res = await new TestClient(baseUrl).post<{ id: string }>('/_test/sessions', fixture ? { fixture } : undefined);
   if (res.status !== 201) {
     throw new Error(
       `Could not create a test session on ${baseUrl} (HTTP ${res.status}: ${JSON.stringify(res.body)}).

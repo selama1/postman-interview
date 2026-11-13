@@ -44,7 +44,7 @@ export default async function setup(project: TestProject) {
   const runId = `${Math.floor(Date.now() / 1000).toString(36)}${Math.random().toString(36).slice(2, 5)}`;
   try {
     const cutoff = Math.floor(Date.now() / 1000) - 3600;
-    const { rows: leaked } = await admin.query<{ datname: string }>(`select datname from pg_database where datname ~ '^ts?_'`);
+    const { rows: leaked } = await admin.query<{ datname: string }>(`select datname from pg_database where datname ~ '^(t|ts|tsdel)_'`);
     for (const { datname } of leaked) {
       const epoch = Number.parseInt(datname.split('_')[1]?.slice(0, 6) ?? '', 36);
       if (Number.isFinite(epoch) && epoch < cutoff) await dropDatabase(admin, datname);

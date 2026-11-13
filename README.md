@@ -59,6 +59,10 @@ curl -H "x-test-session: ts_..." http://localhost:3000/health/db   # runs agains
 curl -X DELETE http://localhost:3000/_test/sessions/ts_...
 ```
 
+Sessions can also start from a named fixture (`POST /_test/sessions` with body
+`{"fixture":"<name>"}`, list with `GET /_test/fixtures`). The fixture is seeded once and then
+cloned, so each session costs the same as an empty one.
+
 It is off by default and must stay off for any deployment that holds real data
 (`TEST_SESSIONS_ENABLED=false`). When it is off, a request that carries the header is rejected
 rather than served from real data.

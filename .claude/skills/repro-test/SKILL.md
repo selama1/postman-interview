@@ -13,7 +13,8 @@ Reproduce through HTTP exactly as the client hit it: same method/path/query/body
 actor if there are several (API key/role header). Not by calling the repo function directly.
 
 ## 2. Arrange data inside the test
-Each test has its own empty, migrated DB. Arrange via the API (preferred: it's the real path) or
+Each test has its own empty, migrated DB — or starts from a named fixture
+(`useTarget({ fixture: 'small_fleet' })`, defined in src/testing/fixtures.ts; seeded once, cloned per test). Arrange via the API (preferred: it's the real path) or
 via `t.db.db` (Kysely) / `t.db.query(sql)` for bulk or for states the API can't create (legacy
 rows, corrupted imports).
 

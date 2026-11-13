@@ -4,7 +4,17 @@ import pg from 'pg';
 import type { Logger } from 'pino';
 import type { Db } from '../db/kysely.js';
 import type { Database } from '../db/schema.js';
-import { cloneTemplate, dropDatabase, ensureTemplate, withDatabase } from '../db/template.js';
+import {
+  cloneTemplate,
+  dropDatabase,
+  ensureFixtureTemplate,
+  ensureTemplate,
+  retireDatabase,
+  TEMPLATE_DB,
+  withDatabase,
+  type FixtureRegistry,
+} from '../db/template.js';
+import { fixtures as defaultFixtures } from './fixtures.js';
 
 /**
  * API test mode: each test session is its own database, cloned from the sealed migrated
@@ -22,13 +32,14 @@ export const SESSION_ID = /^ts_[0-9a-z]{6}_[0-9a-f]{12}$/;
 
 export interface TestSessionInfo {
   id: string;
+  fixture?: string | undefined;
   createdAt: string;
   expiresAt: string;
 }
 
 export class TestSessionError extends Error {
   constructor(
-    readonly kind: 'not_found' | 'limit',
+    readonly kind: 'not_found' | 'limit' | 'unknown_fixture',
     message: string,
   ) {
     super(message);
@@ -48,17 +59,26 @@ export interface SessionManagerOptions {
   poolMax?: number;
   statementTimeoutMs?: number;
   logger?: Logger;
+  /** Named initial states (default: src/testing/fixtures.ts). */
+  fixtures?: FixtureRegistry;
 }
+
+const TRASH_PREFIX = 'tsdel_';
 
 export class TestSessionManager {
   private readonly admin: pg.Pool;
   private readonly cache = new Map<string, Cached>();
   private reaper: NodeJS.Timeout | undefined;
   private templateReady: Promise<unknown> | undefined;
+  private readonly fixtureTemplates = new Map<string, Promise<string>>();
+  private readonly fixtureOf = new Map<string, string>();
+  private dropQueue: Promise<void> = Promise.resolve();
+  readonly fixtures: FixtureRegistry;
 
   constructor(private readonly opts: SessionManagerOptions) {
     this.admin = new pg.Pool({ connectionString: opts.adminUrl, max: 2 });
     this.admin.on('error', (err) => opts.logger?.warn({ err }, 'test-session admin pool error'));
+    this.fixtures = opts.fixtures ?? defaultFixtures;
   }
 
   /** Build/refresh the template if migrations changed; start the expiry reaper. */
@@ -76,7 +96,7 @@ export class TestSessionManager {
 
   private info(id: string): TestSessionInfo {
     const c = this.createdAt(id);
-    return { id, createdAt: new Date(c).toISOString(), expiresAt: new Date(c + this.opts.ttlMs).toISOString() };
+    return { id, fixture: this.fixtureOf.get(id), createdAt: new Date(c).toISOString(), expiresAt: new Date(c + this.opts.ttlMs).toISOString() };
   }
 
   async list(): Promise<TestSessionInfo[]> {
@@ -84,15 +104,33 @@ export class TestSessionManager {
     return rows.map((r) => r.datname).filter((n) => SESSION_ID.test(n)).map((n) => this.info(n));
   }
 
-  async create(): Promise<TestSessionInfo> {
+  /** Sealed template for a fixture (built once per fingerprint, then cached for this process). */
+  private fixtureTemplate(name: string): Promise<string> {
+    const fx = this.fixtures[name];
+    if (!fx) {
+      const known = Object.keys(this.fixtures);
+      throw new TestSessionError('unknown_fixture', `unknown fixture "${name}"; known: ${known.length ? known.join(', ') : '(none defined)'}`);
+    }
+    let p = this.fixtureTemplates.get(name);
+    if (!p) {
+      p = ensureFixtureTemplate(this.admin, this.opts.adminUrl, name, fx, { log: (m) => this.opts.logger?.info(m) });
+      p.catch(() => this.fixtureTemplates.delete(name)); // retry on the next request after a failed seed
+      this.fixtureTemplates.set(name, p);
+    }
+    return p;
+  }
+
+  async create(opts: { fixture?: string | undefined } = {}): Promise<TestSessionInfo> {
     await this.templateReady;
+    const template = opts.fixture ? await this.fixtureTemplate(opts.fixture) : TEMPLATE_DB;
     const existing = await this.list();
     if (existing.length >= this.opts.maxSessions) {
       throw new TestSessionError('limit', `test session limit reached (${existing.length}/${this.opts.maxSessions})`);
     }
     const id = `ts_${Math.floor(Date.now() / 1000).toString(36).padStart(6, '0')}_${randomBytes(6).toString('hex')}`;
-    await cloneTemplate(this.admin, id);
-    this.opts.logger?.info({ testSession: id }, 'test session created');
+    await cloneTemplate(this.admin, id, template);
+    if (opts.fixture) this.fixtureOf.set(id, opts.fixture);
+    this.opts.logger?.info({ testSession: id, fixture: opts.fixture }, 'test session created');
     return this.info(id);
   }
 
@@ -121,14 +159,34 @@ export class TestSessionManager {
     return db;
   }
 
+  /**
+   * Instant from the caller's view: the session is renamed out of the live namespace (it 404s
+   * immediately) and the real DROP runs in a serialized background queue. DROP DATABASE forces a
+   * checkpoint and concurrent drops serialize (measured 40 parallel drops = 22 s), which would
+   * otherwise dominate a large suite's teardown.
+   */
   async drop(id: string): Promise<boolean> {
     if (!SESSION_ID.test(id)) return false;
     await this.evict(id);
     const { rowCount } = await this.admin.query('select 1 from pg_database where datname = $1', [id]);
     if (!rowCount) return false;
-    await dropDatabase(this.admin, id);
-    this.opts.logger?.info({ testSession: id }, 'test session dropped');
+    const trash = `${TRASH_PREFIX}${id.slice(3)}`;
+    await retireDatabase(this.admin, id, trash);
+    this.fixtureOf.delete(id);
+    this.enqueueDrop(trash);
+    this.opts.logger?.info({ testSession: id }, 'test session deleted');
     return true;
+  }
+
+  private enqueueDrop(name: string) {
+    this.dropQueue = this.dropQueue
+      .then(() => dropDatabase(this.admin, name))
+      .catch((err) => this.opts.logger?.warn({ err, db: name }, 'background drop failed (reaper will retry)'));
+  }
+
+  /** Resolves when every background drop queued so far has finished (tests, shutdown). */
+  async settle(): Promise<void> {
+    await this.dropQueue;
   }
 
   private async evict(id: string) {
@@ -139,8 +197,10 @@ export class TestSessionManager {
     if (!c.pool.ended) await c.pool.end().catch(() => {});
   }
 
-  /** Drop expired sessions; close pools idle > 5 min. */
+  /** Drop expired sessions and leftover retired DBs (e.g. after a crash); close pools idle > 5 min. */
   async reap(): Promise<void> {
+    const { rows } = await this.admin.query<{ datname: string }>(`select datname from pg_database where starts_with(datname, '${TRASH_PREFIX}')`);
+    for (const r of rows) this.enqueueDrop(r.datname);
     for (const s of await this.list()) {
       if (Date.parse(s.expiresAt) < Date.now()) await this.drop(s.id);
     }
@@ -150,6 +210,7 @@ export class TestSessionManager {
   async close(): Promise<void> {
     if (this.reaper) clearInterval(this.reaper);
     for (const id of [...this.cache.keys()]) await this.evict(id);
+    await this.settle();
     await this.admin.end();
   }
 }

@@ -20,6 +20,8 @@ them. Newest first. Format:
   ~100 ms) / schema per session via search_path (cheaper, leaks through pooled connections) /
   transaction-per-session (can't span requests).
 - Decided by: user (requirement), mechanism proposed by Claude and approved.
+- Follow-up (same day): named fixtures as sealed templates (seed once, clone per session/test);
+  DELETE made instant (rename + background drop) after measuring 22 s for 40 synchronous drops.
 - Consequences: handlers must use `req.db` (static test enforces). Enabled in compose, default off;
   header refused when off. Non-Postgres state must key on the session.
 
