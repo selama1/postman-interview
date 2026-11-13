@@ -11,6 +11,13 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 
+// Honour repo-root .env (ports / E2E_BASE_URL / COMPOSE_PROJECT_NAME overrides, e.g. in a practice worktree).
+try {
+  process.loadEnvFile('.env');
+} catch {
+  /* no .env: defaults */
+}
+
 const base = (process.argv[2] ?? process.env.E2E_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 const results = [];
 

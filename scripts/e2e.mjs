@@ -11,6 +11,13 @@
  */
 import { spawnSync } from 'node:child_process';
 
+// Honour repo-root .env (ports / E2E_BASE_URL / COMPOSE_PROJECT_NAME overrides, e.g. in a practice worktree).
+try {
+  process.loadEnvFile('.env');
+} catch {
+  /* no .env: defaults */
+}
+
 const args = new Set(process.argv.slice(2));
 const run = (cmd, argv, env = {}) => {
   console.log(`\n$ ${cmd} ${argv.join(' ')}`);
