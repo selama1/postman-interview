@@ -13,8 +13,10 @@ import type { Config } from '../config.js';
 import type { Db } from '../db/kysely.js';
 import { VERSION } from '../lib/version.js';
 import { loggerOptions } from '../logger.js';
+import type { TestSessionManager } from '../testing/sessions.js';
 import { registerErrorHandling } from './errors.js';
 import { registerRoutes } from './routes/index.js';
+import { registerRequestDb, testSessionRoutes } from './test-mode.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -30,6 +32,8 @@ export interface BuildAppOptions {
   pool?: pg.Pool;
   /** Override logger (tests pass false or a level). Defaults to loggerOptions(config). */
   logger?: FastifyServerOptions['logger'];
+  /** API test mode. When given, x-test-session routes requests to isolated DBs; the app owns and closes it. */
+  testSessions?: TestSessionManager;
   /** Extra plugins registered after the real routes (tests use this for fixture resources). */
   plugins?: Array<{ plugin: FastifyPluginAsync; prefix?: string }>;
 }
@@ -60,6 +64,11 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   });
 
   registerErrorHandling(app, { exposeInternal: opts.config.NODE_ENV !== 'production' });
+  registerRequestDb(app, opts.testSessions);
+  if (opts.testSessions) {
+    const sessions = opts.testSessions;
+    app.addHook('onClose', async () => sessions.close());
+  }
 
   await app.register(swagger, {
     openapi: {
@@ -71,6 +80,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   await app.register(swaggerUi, { routePrefix: '/docs' });
   app.get('/openapi.json', { schema: { hide: true } }, async () => app.swagger());
 
+  if (opts.testSessions) await app.register(testSessionRoutes(opts.testSessions), { prefix: '/_test' });
   await registerRoutes(app);
   for (const p of opts.plugins ?? []) await app.register(p.plugin, p.prefix ? { prefix: p.prefix } : {});
 

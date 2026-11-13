@@ -24,6 +24,10 @@ const ConfigSchema = z.object({
   LOG_SQL: bool.default(false),
   SLOW_QUERY_MS: z.coerce.number().int().nonnegative().default(250),
   MIGRATE_ON_START: bool.default(false),
+  /** API test mode (x-test-session). Never enable on a deployment that holds real data. */
+  TEST_SESSIONS_ENABLED: bool.default(false),
+  TEST_SESSION_TTL_MIN: z.coerce.number().positive().default(60),
+  TEST_SESSIONS_MAX: z.coerce.number().int().positive().default(100),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

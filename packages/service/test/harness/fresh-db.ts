@@ -2,6 +2,7 @@ import { Kysely, PostgresDialect } from 'kysely';
 import pg from 'pg';
 import { inject } from 'vitest';
 import type { Database } from '../../src/db/schema.js';
+import { cloneTemplate, dropDatabase } from '../../src/db/template.js';
 import { testEnv, withDatabase } from './env.js';
 
 /**
@@ -29,7 +30,7 @@ function admin(): pg.Pool {
 
 export async function freshDb(): Promise<FreshDb> {
   const name = `t_${inject('runId')}_${process.pid}_${++counter}`;
-  await admin().query(`create database "${name}" template "${inject('templateDb')}"`);
+  await cloneTemplate(admin(), name, inject('templateDb'));
   const url = withDatabase(inject('adminUrl'), name);
   const pool = new pg.Pool({ connectionString: url, max: 10 });
   // Idle clients get terminated when the DB is force-dropped; don't let that crash the worker.
@@ -51,7 +52,7 @@ export async function freshDb(): Promise<FreshDb> {
         console.log(`[test-harness] KEEP_TEST_DB=1: kept ${name} -> psql "${url}"`);
         return;
       }
-      await admin().query(`drop database if exists "${name}" with (force)`);
+      await dropDatabase(admin(), name);
     },
   };
 }

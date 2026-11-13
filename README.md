@@ -48,6 +48,21 @@ Other endpoints:
 - `GET /docs`: Swagger UI
 - `GET /openapi.json`: OpenAPI 3.1. In Postman: *Import → Link →* `http://localhost:3000/openapi.json`
 
+### Test mode
+
+The compose stack runs with **API test mode** on. Any client can get an isolated, empty, migrated
+database and use it with one header:
+
+```bash
+curl -X POST http://localhost:3000/_test/sessions          # -> {"id":"ts_...","expiresAt":...}
+curl -H "x-test-session: ts_..." http://localhost:3000/health/db   # runs against that session's DB
+curl -X DELETE http://localhost:3000/_test/sessions/ts_...
+```
+
+It is off by default and must stay off for any deployment that holds real data
+(`TEST_SESSIONS_ENABLED=false`). When it is off, a request that carries the header is rejected
+rather than served from real data.
+
 With Node 22+ and pnpm you can also run `pnpm install && pnpm verify`. It prints the same
 response and exits 0 only when connected.
 

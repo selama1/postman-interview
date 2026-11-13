@@ -28,6 +28,15 @@ from the sealed, migrated template (`freshDb()` / `useTarget()`).
 - **How to apply:** if `db-test` is down, tests FAIL with the fix (`pnpm db:test:up`) — never skip
   or mock around it. Mocks are fine only for pure logic (unit project).
 
+### 2b. Every route reads `req.db` — API test mode is on by construction
+Clients isolate themselves with `x-test-session` (POST /_test/sessions → empty migrated DB). It
+works for every endpoint only because handlers use `req.db`, never `app.db`.
+- **Why:** e2e, SDK and Postman-collection tests need the same "empty DB" guarantee against the
+  real container that integration tests get in-process (same idea as XCiteDB's test sessions).
+- **How to apply:** pass `req.db` into repo functions (they take an `Executor`). The static test
+  `req-db.static.test.ts` fails on `app.db` in routes. Non-DB state a handler keeps (caches, jobs,
+  webhooks) must key on `req.testSession`.
+
 ### 3. Never say "done/ready" without the layer that proves it
 "Done" = `pnpm test` green (typecheck rides `pretest`) **and**, for anything user-visible,
 `pnpm test:e2e` green against the rebuilt container. State which layers ran.

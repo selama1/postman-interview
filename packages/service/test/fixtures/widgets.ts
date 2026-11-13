@@ -8,6 +8,7 @@
  * multi-column sort, explicit filters, problem errors (404 via notFound, 409 via the UNIQUE
  * constraint mapped centrally), PATCH with partial bodies, 201 + Location.
  */
+import type { FastifyRequest } from 'fastify';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { sql, type Generated, type Kysely, type Selectable } from 'kysely';
 import { z } from 'zod';
@@ -67,9 +68,11 @@ const IdParams = z.object({ id: z.coerce.number().int().positive() });
 
 // --- routes -----------------------------------------------------------------------------------
 export const widgetRoutes: FastifyPluginAsyncZod = async (app) => {
-  const db = app.db.withTables<{ widgets: WidgetsTable }>();
+  // Always the request's DB (test-session aware) — never app.db. See src/http/test-mode.ts.
+  const tables = (req: FastifyRequest) => req.db.withTables<{ widgets: WidgetsTable }>();
 
   app.post('/', { schema: { tags: ['widgets'], body: WidgetInput, response: { 201: Widget } } }, async (req, reply) => {
+    const db = tables(req);
     const row = await db
       .insertInto('widgets')
       .values({ name: req.body.name, color: req.body.color, weight_g: req.body.weightG })
@@ -93,6 +96,7 @@ export const widgetRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (req) => {
+      const db = tables(req);
       const { limit, cursor, color, q, minWeightG } = req.query;
       const sort = parseSort(req.query.sort, SORTABLE, 'createdAt').map(({ col, dir }) => ({ col, dir }));
       const opts = { sort, id: 'id', limit, cursor };
@@ -107,12 +111,14 @@ export const widgetRoutes: FastifyPluginAsyncZod = async (app) => {
   );
 
   app.get('/:id', { schema: { tags: ['widgets'], params: IdParams, response: { 200: Widget } } }, async (req) => {
+    const db = tables(req);
     const row = await db.selectFrom('widgets').selectAll().where('id', '=', req.params.id).executeTakeFirst();
     if (!row) throw notFound('widget', req.params.id, 'List widgets with GET /widgets to find a valid id.');
     return toDto(row);
   });
 
   app.patch('/:id', { schema: { tags: ['widgets'], params: IdParams, body: WidgetPatch, response: { 200: Widget } } }, async (req) => {
+    const db = tables(req);
     const { name, color, weightG } = req.body;
     if (name === undefined && color === undefined && weightG === undefined) {
       throw badRequest('EMPTY_PATCH', 'no fields to update', 'Send at least one of name, color, weightG.');
@@ -132,7 +138,7 @@ export const widgetRoutes: FastifyPluginAsyncZod = async (app) => {
   });
 
   app.delete('/:id', { schema: { tags: ['widgets'], params: IdParams } }, async (req, reply) => {
-    const r = await db.deleteFrom('widgets').where('id', '=', req.params.id).executeTakeFirst();
+    const r = await tables(req).deleteFrom('widgets').where('id', '=', req.params.id).executeTakeFirst();
     if (r.numDeletedRows === 0n) throw notFound('widget', req.params.id);
     return reply.code(204).send();
   });

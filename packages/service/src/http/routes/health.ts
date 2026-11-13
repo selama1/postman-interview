@@ -40,6 +40,7 @@ export const healthRoutes: FastifyPluginAsyncZod = async (app) => {
             serverTime: z.string(),
             migrations: z.object({ executed: z.number(), pending: z.array(z.string()), latest: z.string().nullable() }),
             pool: z.object({ total: z.number(), idle: z.number(), waiting: z.number() }).optional(),
+            testSession: z.string().optional(),
           }),
           503: z.object({ status: z.literal('error'), code: z.string(), detail: z.string(), fix: z.string(), requestId: z.string() }),
         },
@@ -50,9 +51,9 @@ export const healthRoutes: FastifyPluginAsyncZod = async (app) => {
       try {
         const { rows } = await sql<{ database: string; server_version: string; now: Date }>`
           select current_database() as database, current_setting('server_version') as server_version, now() as now
-        `.execute(app.db);
+        `.execute(req.db);
         const row = rows[0]!;
-        const migrations = await migrationStatus(app.db);
+        const migrations = await migrationStatus(req.db);
         const pool = app.pool ? { total: app.pool.totalCount, idle: app.pool.idleCount, waiting: app.pool.waitingCount } : undefined;
         return {
           status: 'ok' as const,
@@ -61,7 +62,7 @@ export const healthRoutes: FastifyPluginAsyncZod = async (app) => {
           serverVersion: row.server_version,
           serverTime: new Date(row.now).toISOString(),
           migrations,
-          ...(pool ? { pool } : {}),
+          ...(req.testSession ? { testSession: req.testSession } : pool ? { pool } : {}),
         };
       } catch (err) {
         req.log.error({ err }, 'health/db failed');

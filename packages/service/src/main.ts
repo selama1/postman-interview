@@ -4,17 +4,34 @@ import { createDbFromConfig } from './db/kysely.js';
 import { migrateToLatest } from './db/migrate.js';
 import { buildApp } from './http/app.js';
 import { loggerOptions } from './logger.js';
+import { TestSessionManager } from './testing/sessions.js';
 
 async function main() {
   const config = loadConfig();
-  const app = await buildApp({ config, ...connect(config) });
-  const log = app.log;
+  const conn = connect(config);
+  const baseLog = pino(loggerOptions(config));
 
   if (config.MIGRATE_ON_START) {
-    const r = await migrateToLatest(app.db);
+    const r = await migrateToLatest(conn.db);
     const applied = (r.results ?? []).map((m) => m.migrationName);
-    log.info({ applied }, applied.length ? `applied ${applied.length} migration(s)` : 'migrations up to date');
+    baseLog.info({ applied }, applied.length ? `applied ${applied.length} migration(s)` : 'migrations up to date');
   }
+
+  let testSessions: TestSessionManager | undefined;
+  if (config.TEST_SESSIONS_ENABLED) {
+    testSessions = new TestSessionManager({
+      adminUrl: config.DATABASE_URL,
+      ttlMs: config.TEST_SESSION_TTL_MIN * 60_000,
+      maxSessions: config.TEST_SESSIONS_MAX,
+      statementTimeoutMs: config.DB_STATEMENT_TIMEOUT_MS,
+      logger: baseLog.child({ component: 'test-sessions' }),
+    });
+    await testSessions.start();
+    baseLog.warn('API test mode ENABLED (x-test-session). Do not enable on deployments holding real data.');
+  }
+
+  const app = await buildApp({ config, ...conn, ...(testSessions ? { testSessions } : {}) });
+  const log = app.log;
 
   let closing = false;
   const shutdown = async (signal: string) => {

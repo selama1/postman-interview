@@ -34,6 +34,7 @@ Write `down()`. The test template rebuilds automatically on the next test run.
 Add the table interface to `src/db/schema.ts`.
 
 ## 4. Implement
+Handlers use **`req.db`** (test-mode aware), never `app.db`; repo functions take an `Executor`.
 Copy the shape of `test/fixtures/widgets.ts`: route plugin with zod schemas, `toDto`, keyset
 list with allowlisted sort + explicit filters, `notFound`/`badRequest`, constraints doing the
 uniqueness/reference work. Register in `src/http/routes/index.ts`. Multi-statement invariants:

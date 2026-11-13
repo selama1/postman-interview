@@ -14,6 +14,13 @@ description: Prove behaviour end-to-end through the real docker compose stack (r
    E2E_BASE_URL (default http://localhost:3000).
 Flags: `--no-build` (tests-only changes), `--down` (tear down afterwards).
 
+**Isolation on the stack:** `useTarget()` in e2e mode opens an API test session per test
+(`POST /_test/sessions`, header `x-test-session`), so scenarios get an empty migrated DB on the
+real container too — no `uniq()` gymnastics, `paginationContract`-style "exactly these rows"
+assertions hold. Manual: `curl -X POST localhost:3000/_test/sessions` then add
+`-H 'x-test-session: <id>'` to any request. The SDK/CLI built live should accept a test session
+option and be tested the same way.
+
 ## Extending the journey for a new feature
 In `scripts/e2e-journey.mjs` under "feature journeys", walk the flow as a client would:
 create what you read (unique names: `${Date.now()}`), then list/filter/page, then the error path.

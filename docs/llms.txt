@@ -57,6 +57,10 @@ Every route must be listed here (`pnpm docs:check` enforces it).
     GET /health/db       real DB round-trip: version, database, migrations, pool stats; 503 + fix when down
     GET /openapi.json    OpenAPI 3.1 (import into Postman: Import -> Link -> http://localhost:3000/openapi.json)
     GET /docs            Swagger UI
+    POST /_test/sessions        test mode: create an isolated, empty, migrated DB -> { id, createdAt, expiresAt }
+    GET /_test/sessions         test mode: list sessions
+    DELETE /_test/sessions/:id  test mode: drop a session's DB
+    (any route) + header `x-test-session: <id>` -> runs against that session's DB
 
 ## 5. Conventions (every change follows these)
 
@@ -92,6 +96,20 @@ Every route must be listed here (`pnpm docs:check` enforces it).
 - Repos/helpers take an `Executor` (db or trx) so they compose inside transactions.
 - Raw data imports go to the `staging` schema (scripts/data/load.ts), then a migration shapes it.
 
+### Test mode (x-test-session) — every route supports it by construction
+- Handlers read the DB via **`req.db`, never `app.db`** (enforced by
+  src/http/routes/req-db.static.test.ts). `req.db` is the session DB when `x-test-session` is sent,
+  else the main DB. Repos take an `Executor` and get `req.db` passed in.
+- Sessions = databases cloned from the sealed template (src/db/template.ts, shared with the test
+  harness), named `ts_<epoch36>_<hex>`; TTL `TEST_SESSION_TTL_MIN`, cap `TEST_SESSIONS_MAX`,
+  reaper every 60 s. State is in Postgres, so sessions survive a service restart.
+- `TEST_SESSIONS_ENABLED=true` in compose (dev/demo stack); default false. If disabled, a request
+  that carries the header gets 400 TEST_MODE_DISABLED — never silently served from real data.
+- Isolation covers Postgres only. Anything else request-derived (in-memory caches, background jobs,
+  outbound webhooks) must key on `req.testSession` too.
+- Clients (SDK/CLI/Postman) opt in by creating a session and sending the header — the SDK should
+  expose it as a constructor option.
+
 ### Config / logging
 - New setting -> `config.ts` schema with a safe default + `.env.example` line.
 - `req.log` inside handlers (carries reqId). LOG_SQL=true + LOG_LEVEL=debug logs every statement;
@@ -103,10 +121,12 @@ Every route must be listed here (`pnpm docs:check` enforces it).
 |---|---|---|---|
 | unit | src/**/*.test.ts | nothing (pure logic) | pnpm test:unit |
 | integration | test/integration, test/scenarios | db-test: NEW EMPTY migrated DB per test + real app on random port | pnpm test:int |
-| e2e | test/e2e, test/scenarios, scripts/e2e-journey.mjs | the docker compose stack | pnpm test:e2e |
+| e2e | test/e2e, test/scenarios, scripts/e2e-journey.mjs | the docker compose stack; each test in its own API test session (empty DB) | pnpm test:e2e |
 
-- `const t = useTarget(opts?)` -> `t.client` (HTTP), `t.db` (FreshDb: `.db` Kysely, `.query()` raw),
-  `t.isolated` (false on e2e: shared data — use `uniq()` names, never assume empty tables).
+- `const t = useTarget(opts?)` -> `t.client` (HTTP), `t.db` (integration only — FreshDb: `.db` Kysely,
+  `.query()` raw), `t.testSession` (e2e). Both targets start every test on an empty DB: integration
+  via a fresh DB, e2e via an API test session (`useTarget({ session: false })` opts out and hits the
+  shared DB — then use `uniq()` names). Arrange data via the API in scenarios (no `t.db` on e2e).
   `useTarget({ fresh: 'file' })` shares one DB per file when tests are read-only.
 - Matchers: `expect(res).toHaveStatus(201)`, `expect(res).toBeProblem(404, 'NOT_FOUND')` — failures
   print the whole exchange incl. x-request-id.

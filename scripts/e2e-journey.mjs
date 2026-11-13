@@ -69,6 +69,15 @@ check(
 const oas = await call('GET', '/openapi.json');
 check('OpenAPI document served', oas.status === 200 && /^3\./.test(oas.json?.openapi ?? ''), `${Object.keys(oas.json?.paths ?? {}).length} paths`);
 
+// ---- API test mode (x-test-session) -----------------------------------------------------------
+const ts = await call('POST', '/_test/sessions');
+if (check('test mode: POST /_test/sessions -> 201', ts.status === 201 && !!ts.json?.id, `status ${ts.status}`, false)) {
+  const sdb = await call('GET', '/health/db', null, { 'x-test-session': ts.json.id });
+  check('test mode: requests with x-test-session run on the session DB', sdb.json?.database === ts.json.id && sdb.json?.migrations?.pending?.length === 0, `database ${sdb.json?.database}`);
+  const del = await call('DELETE', `/_test/sessions/${ts.json.id}`);
+  check('test mode: DELETE /_test/sessions/:id -> 204', del.status === 204);
+}
+
 // ---- feature journeys go here --------------------------------------------------------------
 // e.g. create a shipment -> list it with a filter -> page through -> fetch a report -> 404 path
 

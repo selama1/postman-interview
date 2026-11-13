@@ -9,10 +9,13 @@ import { readFileSync } from 'node:fs';
 import { loadConfig } from '../packages/service/src/config.js';
 import { createDb } from '../packages/service/src/db/kysely.js';
 import { buildApp } from '../packages/service/src/http/app.js';
+import { TestSessionManager } from '../packages/service/src/testing/sessions.js';
 
 const config = loadConfig({ ...process.env, DATABASE_URL: 'postgres://x:x@127.0.0.1:1/x', LOG_LEVEL: 'silent' });
 const { db } = createDb({ url: config.DATABASE_URL });
-const app = await buildApp({ config, db, logger: false });
+// Test mode on so its routes are checked too (the manager connects lazily: no DB needed here).
+const testSessions = new TestSessionManager({ adminUrl: config.DATABASE_URL, ttlMs: 60_000, maxSessions: 1 });
+const app = await buildApp({ config, db, logger: false, testSessions });
 await app.ready();
 const spec = app.swagger() as { paths?: Record<string, Record<string, unknown>> };
 const routes = Object.entries(spec.paths ?? {}).flatMap(([p, ops]) =>

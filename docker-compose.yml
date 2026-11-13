@@ -50,6 +50,9 @@ services:
       LOG_FORMAT: json
       DATABASE_URL: postgres://app:app@db:5432/app
       MIGRATE_ON_START: "true"
+      # API test mode (x-test-session -> isolated DB per session). On for this dev/demo stack;
+      # set TEST_SESSIONS_ENABLED=false for any deployment holding real data.
+      TEST_SESSIONS_ENABLED: ${TEST_SESSIONS_ENABLED:-true}
       SLOW_QUERY_MS: ${SLOW_QUERY_MS:-250}
       LOG_SQL: ${LOG_SQL:-false}
     ports:
