@@ -23,32 +23,32 @@ describe('importFromStaging', () => {
   });
 
   async function setup(rows: Row[] = [], extraDdl = '') {
-    await q(`create table customers (id bigint primary key, name text not null)`);
-    await q(`insert into customers values (1, 'Fry'), (2, 'Leela')`);
-    await q(`create table shipments (
+    await q(`create table imp_customers (id bigint primary key, name text not null)`);
+    await q(`insert into imp_customers values (1, 'Fry'), (2, 'Leela')`);
+    await q(`create table imp_shipments (
       id bigint generated always as identity primary key,
       tracking_code text not null unique,
-      customer_id bigint not null references customers(id),
+      customer_id bigint not null references imp_customers(id),
       weight_kg numeric(10,2),
       status text not null default 'pending',
       shipped_at date,
       delivered_at timestamptz,
       qty integer)`);
-    await q(`create table staging.shipments (_row bigint primary key, tracking_code text, customer_id text, weight text, status text, shipped text, delivered text, qty text)`);
+    await q(`create table staging.imp_shipments (_row bigint primary key, tracking_code text, customer_id text, weight text, status text, shipped text, delivered text, qty text)`);
     if (extraDdl) await q(extraDdl);
     for (const [i, r] of rows.entries()) {
-      await q(`insert into staging.shipments values ($1,$2,$3,$4,$5,$6,$7,$8)`, [i + 1, r.tracking_code ?? null, r.customer_id ?? null, r.weight ?? null, r.status ?? null, r.shipped ?? null, r.delivered ?? null, r.qty ?? null]);
+      await q(`insert into staging.imp_shipments values ($1,$2,$3,$4,$5,$6,$7,$8)`, [i + 1, r.tracking_code ?? null, r.customer_id ?? null, r.weight ?? null, r.status ?? null, r.shipped ?? null, r.delivered ?? null, r.qty ?? null]);
     }
   }
 
   const rule = (r: ColumnRule) => r;
   const spec = (over: Partial<ImportSpec> = {}, columns: Record<string, ColumnRule> = {}): ImportSpec => ({
-    source: 'staging.shipments',
-    target: 'shipments',
+    source: 'staging.imp_shipments',
+    target: 'imp_shipments',
     key: ['tracking_code'],
     columns: {
       tracking_code: rule({ from: 'tracking_code', type: 'text', required: true, normalize: 'upper' }),
-      customer_id: rule({ from: 'customer_id', type: 'bigint', required: true, ref: { table: 'customers', column: 'id' } }),
+      customer_id: rule({ from: 'customer_id', type: 'bigint', required: true, ref: { table: 'imp_customers', column: 'id' } }),
       weight_kg: rule({ from: 'weight', type: 'numeric', normalize: 'number', check: { sql: '$v > 0', reason: 'must be positive' } }),
       status: rule({ from: 'status', type: 'text', normalize: 'lower', oneOf: ['pending', 'in_transit', 'delivered', 'lost'], default: "'pending'" }),
       shipped_at: rule({ from: 'shipped', type: 'date' }),
@@ -74,7 +74,7 @@ describe('importFromStaging', () => {
     await setup([good(1), good(2, { tracking_code: ' tc2 ', weight: '1,234.5 kg', status: 'DELIVERED' })]);
     const r = accounted(await run());
     expect(r).toMatchObject({ total: 2, inserted: 2, updated: 0, rejected: 0, skippedDuplicates: 0, byReason: [] });
-    const rows = await q(`select tracking_code, weight_kg::text, status, shipped_at::text, delivered_at is not null as d, qty from shipments order by id`);
+    const rows = await q(`select tracking_code, weight_kg::text, status, shipped_at::text, delivered_at is not null as d, qty from imp_shipments order by id`);
     expect(rows).toEqual([
       { tracking_code: 'TC1', weight_kg: '10.00', status: 'pending', shipped_at: '2026-01-02', d: true, qty: 5 },
       { tracking_code: 'TC2', weight_kg: '1234.50', status: 'delivered', shipped_at: '2026-01-02', d: true, qty: 5 },
@@ -97,7 +97,7 @@ describe('importFromStaging', () => {
     ['required null', { customer_id: null }, 'customer_id', 'required', 'customer_id: required'],
     ['oneOf', { status: 'shipped' }, 'status', 'not in (pending|in_transit|delivered|lost)', 'status: "shipped" not in (pending|in_transit|delivered|lost)'],
     ['check', { weight: '-3' }, 'weight_kg', 'must be positive', 'weight_kg: must be positive (got "-3")'],
-    ['missing ref', { customer_id: '99' }, 'customer_id', 'no matching customers.id', 'customer_id: no customers.id = 99'],
+    ['missing ref', { customer_id: '99' }, 'customer_id', 'no matching imp_customers.id', 'customer_id: no imp_customers.id = 99'],
   ];
   it.each(classes)('rejects %s with source row, reason text and report entry', async (_label, bad, column, template, text) => {
     await setup([good(1), good(2, bad), good(3)]);
@@ -109,7 +109,7 @@ describe('importFromStaging', () => {
     expect(rej[0]!.source_row).toBe(2);
     expect(rej[0]!.reasons).toEqual([text]);
     expect(rej[0]!.raw).toMatchObject({ _row: 2 }); // the full staging row is kept for inspection
-    expect(await q(`select count(*)::int as n from shipments`)).toEqual([{ n: 2 }]);
+    expect(await q(`select count(*)::int as n from imp_shipments`)).toEqual([{ n: 2 }]);
   });
 
   it('a row with two problems gets BOTH reasons; the report counts it under each', async () => {
@@ -118,7 +118,7 @@ describe('importFromStaging', () => {
     const rej = await rejects(r.importId);
     expect(rej.map((x) => x.source_row)).toEqual([2, 3]);
     expect(rej[0]!.reasons).toEqual([
-      'customer_id: no customers.id = 99',
+      'customer_id: no imp_customers.id = 99',
       'weight_kg: "x" is not a valid numeric',
       'status: "shipped" not in (pending|in_transit|delivered|lost)',
     ]);
@@ -137,7 +137,7 @@ describe('importFromStaging', () => {
       good(5, { weight: '1,23,4' }),
     ]);
     const r = await run({}, { weight_kg: rule({ from: 'weight', type: 'numeric', normalize: 'number' }) });
-    expect((await q(`select tracking_code, weight_kg::text as w from shipments order by id`))).toEqual([
+    expect((await q(`select tracking_code, weight_kg::text as w from imp_shipments order by id`))).toEqual([
       { tracking_code: 'TC1', w: '1234.50' },
       { tracking_code: 'TC2', w: '1234.50' },
       { tracking_code: 'TC3', w: '-7.25' },
@@ -149,11 +149,11 @@ describe('importFromStaging', () => {
     await setup([good(1, { shipped: '01/02/2026' }), good(2, { shipped: '13/02/2026' })]);
     const mdy = await run();
     expect(mdy.byReason).toEqual([{ column: 'shipped_at', reason: 'is not a valid date', count: 1, sampleRows: [2] }]);
-    expect(await q(`select shipped_at::text as d from shipments`)).toEqual([{ d: '2026-01-02' }]);
-    await q(`delete from shipments`);
+    expect(await q(`select shipped_at::text as d from imp_shipments`)).toEqual([{ d: '2026-01-02' }]);
+    await q(`delete from imp_shipments`);
     const dmy = await run({ dateOrder: 'DMY' });
     expect(dmy).toMatchObject({ inserted: 2, rejected: 0 });
-    expect(await q(`select shipped_at::text as d from shipments order by id`)).toEqual([{ d: '2026-02-01' }, { d: '2026-02-13' }]);
+    expect(await q(`select shipped_at::text as d from imp_shipments order by id`)).toEqual([{ d: '2026-02-01' }, { d: '2026-02-13' }]);
   });
 
   describe('duplicates on the natural key', () => {
@@ -182,11 +182,11 @@ describe('importFromStaging', () => {
 
     it('reject: a row already in the target is rejected with the target named', async () => {
       await setup([good(1, { tracking_code: 'OLD' }), good(2)]);
-      await q(`insert into shipments (tracking_code, customer_id) values ('OLD', 1)`);
+      await q(`insert into imp_shipments (tracking_code, customer_id) values ('OLD', 1)`);
       const r = accounted(await run());
       expect(r).toMatchObject({ inserted: 1, rejected: 1 });
-      expect((await rejects(r.importId))[0]).toMatchObject({ source_row: 1, reasons: ['already exists in shipments on (tracking_code)'] });
-      expect(r.byReason).toEqual([{ column: 'tracking_code', reason: 'already exists in shipments', count: 1, sampleRows: [1] }]);
+      expect((await rejects(r.importId))[0]).toMatchObject({ source_row: 1, reasons: ['already exists in imp_shipments on (tracking_code)'] });
+      expect(r.byReason).toEqual([{ column: 'tracking_code', reason: 'already exists in imp_shipments', count: 1, sampleRows: [1] }]);
     });
 
     it("skip: duplicates are counted as skippedDuplicates (not rejects); a duplicate with another problem is still a reject for THAT problem", async () => {
@@ -196,13 +196,13 @@ describe('importFromStaging', () => {
         good(3, { tracking_code: 'NEW' }), // in-source duplicate -> skipped
         good(4, { tracking_code: 'OLD', weight: 'x' }), // duplicate but also bad -> reject (own reason only)
       ]);
-      await q(`insert into shipments (tracking_code, customer_id) values ('OLD', 1)`);
+      await q(`insert into imp_shipments (tracking_code, customer_id) values ('OLD', 1)`);
       const r = accounted(await run({ onDuplicate: 'skip' }));
       expect(r).toMatchObject({ total: 4, inserted: 1, skippedDuplicates: 2, rejected: 1, updated: 0 });
       const rej = await rejects(r.importId);
       expect(rej).toHaveLength(1);
       expect(rej[0]).toMatchObject({ source_row: 4, reasons: ['weight_kg: "x" is not a valid numeric'] });
-      expect(await q(`select count(*)::int as n from shipments`)).toEqual([{ n: 2 }]);
+      expect(await q(`select count(*)::int as n from imp_shipments`)).toEqual([{ n: 2 }]);
     });
 
     it('update: existing rows are upserted (updated), new rows inserted, in-source duplicates still rejected', async () => {
@@ -211,10 +211,10 @@ describe('importFromStaging', () => {
         good(2, { tracking_code: 'NEW', weight: '5' }),
         good(3, { tracking_code: 'NEW', weight: '6' }),
       ]);
-      await q(`insert into shipments (tracking_code, customer_id, weight_kg) values ('OLD', 2, 1)`);
+      await q(`insert into imp_shipments (tracking_code, customer_id, weight_kg) values ('OLD', 2, 1)`);
       const r = accounted(await run({ onDuplicate: 'update' }));
       expect(r).toMatchObject({ total: 3, inserted: 1, updated: 1, rejected: 1, skippedDuplicates: 0 });
-      expect(await q(`select tracking_code, customer_id::int as c, weight_kg::text as w, status from shipments order by id`)).toEqual([
+      expect(await q(`select tracking_code, customer_id::int as c, weight_kg::text as w, status from imp_shipments order by id`)).toEqual([
         { tracking_code: 'OLD', c: 1, w: '99.00', status: 'lost' },
         { tracking_code: 'NEW', c: 1, w: '5.00', status: 'pending' },
       ]);
@@ -232,7 +232,7 @@ describe('importFromStaging', () => {
       expect((err as ImportError).code).toBe('IMPORT_SPEC_INVALID');
       for (const f of fragments) expect((err as ImportError).message).toContain(f);
       expect((err as ImportError).fix.length).toBeGreaterThan(0);
-      expect(await q(`select (select count(*)::int from shipments) as s, (select count(*)::int from import_runs) as r, (select count(*)::int from import_rejects) as j`)).toEqual([{ s: 0, r: 0, j: 0 }]);
+      expect(await q(`select (select count(*)::int from imp_shipments) as s, (select count(*)::int from import_runs) as r, (select count(*)::int from import_rejects) as j`)).toEqual([{ s: 0, r: 0, j: 0 }]);
     };
 
     it('unknown staging column lists the staging columns', async () => {
@@ -247,20 +247,20 @@ describe('importFromStaging', () => {
 
     it('unknown source table lists the tables in that schema', async () => {
       await setup([good(1)]);
-      await expectSpecError({ source: 'staging.shipmnts' }, {}, 'staging.shipmnts', 'shipments');
+      await expectSpecError({ source: 'staging.shipmnts' }, {}, 'staging.shipmnts', 'imp_shipments');
     });
 
     it('a bad identifier is refused by name, not interpolated', async () => {
       await setup([good(1)]);
-      await expectSpecError({ target: 'shipments; drop table customers' }, {}, 'shipments; drop table customers');
+      await expectSpecError({ target: 'imp_shipments; drop table imp_customers' }, {}, 'imp_shipments; drop table imp_customers');
       await expectSpecError({}, { weight_kg: rule({ from: 'weight" from x; --', type: 'numeric' }) }, 'from x; --');
-      expect(await q(`select count(*)::int as n from customers`)).toEqual([{ n: 2 }]);
+      expect(await q(`select count(*)::int as n from imp_customers`)).toEqual([{ n: 2 }]);
     });
 
     it('lists every problem at once, plus key / type / update-needs-unique mistakes', async () => {
       await setup([good(1)]);
       await expectSpecError({ key: ['nope'], onDuplicate: 'update' }, {}, '"nope"', 'mapped: tracking_code, customer_id');
-      await expectSpecError({}, { qty: rule({ from: 'qty', type: 'text' }) }, "rule type 'text' does not match shipments.qty (int4)");
+      await expectSpecError({}, { qty: rule({ from: 'qty', type: 'text' }) }, "rule type 'text' does not match imp_shipments.qty (int4)");
       await expectSpecError({ onDuplicate: 'update', key: ['customer_id'] }, {}, 'no plain unique index', '(customer_id)', 'found: (id) (tracking_code)');
     });
   });
@@ -268,7 +268,7 @@ describe('importFromStaging', () => {
   it('is atomic: a target constraint no rule covers aborts everything and the error says what to do', async () => {
     await setup(
       [good(1), good(2, { weight: '5000' }), good(3, { status: 'shipped' }), good(4)],
-      `alter table shipments add constraint weight_cap check (weight_kg < 1000)`,
+      `alter table imp_shipments add constraint weight_cap check (weight_kg < 1000)`,
     );
     const err = await run().then(
       () => null,
@@ -280,7 +280,7 @@ describe('importFromStaging', () => {
     expect(e.message).toContain('weight_cap');
     expect(e.message).toContain('rolled back');
     expect(e.fix).toContain('check: { sql, reason }');
-    expect(await q(`select (select count(*)::int from shipments) as s, (select count(*)::int from import_runs) as r, (select count(*)::int from import_rejects) as j`)).toEqual([{ s: 0, r: 0, j: 0 }]);
+    expect(await q(`select (select count(*)::int from imp_shipments) as s, (select count(*)::int from import_runs) as r, (select count(*)::int from import_rejects) as j`)).toEqual([{ s: 0, r: 0, j: 0 }]);
     // ...and once the rule exists the same data imports cleanly, with the cap violation as a reject.
     const r = await run({}, { weight_kg: rule({ from: 'weight', type: 'numeric', check: { sql: '$v > 0 and $v < 1000', reason: 'must be between 0 and 1000' } }) });
     expect(r).toMatchObject({ inserted: 2, rejected: 2 });
@@ -299,13 +299,13 @@ describe('importFromStaging', () => {
       })
       .catch(() => undefined);
     expect(inside).toMatchObject({ inserted: 1, rejected: 1 });
-    expect(await q(`select (select count(*)::int from shipments) as s, (select count(*)::int from import_runs) as r`)).toEqual([{ s: 0, r: 0 }]);
+    expect(await q(`select (select count(*)::int from imp_shipments) as s, (select count(*)::int from import_runs) as r`)).toEqual([{ s: 0, r: 0 }]);
   });
 
   it('refuses a reused importId (and says how to re-run)', async () => {
     await setup([good(1)]);
     await run({ importId: 'run-1' });
-    await q(`delete from shipments`);
+    await q(`delete from imp_shipments`);
     const err = await run({ importId: 'run-1' }).then(() => null, (e: unknown) => e as ImportError);
     expect(err).toMatchObject({ code: 'IMPORT_ID_TAKEN' });
     expect(err!.fix).toContain('delete from import_runs');
@@ -313,7 +313,7 @@ describe('importFromStaging', () => {
 
   it('perf: 50k staging rows import set-based in well under 10 s', async () => {
     await setup();
-    await q(`insert into staging.shipments
+    await q(`insert into staging.imp_shipments
       select g, 'T' || g, (1 + g % 2)::text,
              case when g % 100 = 0 then 'bad' else ((g % 900) + 1)::text || '.5 kg' end,
              case when g % 250 = 0 then 'bogus' else 'Pending' end,

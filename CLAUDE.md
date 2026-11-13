@@ -119,7 +119,8 @@ rule the fix encodes.
 ### 8. Code shape: separated concerns, small surfaces, abstraction only at real seams
 - **Layers:** route (HTTP: schemas, status codes, actor) → service function (rules; pure where
   possible) → repo (SQL; takes an `Executor`). Routes don't hold business rules, and repos don't
-  know HTTP. Follow `test/fixtures/widgets.ts` before inventing a new shape.
+  know HTTP. New resources start from `pnpm gen:resource`, which encodes this shape; edit its
+  output rather than hand-copying `test/fixtures/widgets.ts`.
 - **Surfaces:** few, explicit, typed. Domain names, options objects over positional booleans,
   one obvious way to do each thing.
 - **Seams:** the DB seam already exists. Kysely plus repo functions over `Executor` means

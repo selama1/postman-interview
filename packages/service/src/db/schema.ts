@@ -1,4 +1,5 @@
 import type { ColumnType, Generated } from 'kysely';
+// @gen:table-imports
 
 /**
  * Kysely table types. One interface per table, keyed by table name in `Database`.
@@ -13,6 +14,7 @@ import type { ColumnType, Generated } from 'kysely';
  *   when a dataset has many columns; then hand-tune.
  *
  * Business tables arrive with the data; only the import bookkeeping tables exist in the scaffold.
+ * `pnpm gen:resource` inserts entries above the @gen: markers; keep them.
  */
 
 /** One row per `importFromStaging` run (src/db/import.ts). */
@@ -45,4 +47,5 @@ export interface ImportRejectsTable {
 export interface Database {
   import_runs: ImportRunsTable;
   import_rejects: ImportRejectsTable;
+  // @gen:tables
 }

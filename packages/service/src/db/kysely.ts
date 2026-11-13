@@ -7,6 +7,9 @@ import type { Database } from './schema.js';
 // pg returns int8 (bigint, count(*)) as string by default. count(*) as string is a classic
 // footgun; parse int8 to number (safe below 2^53 — fine for counts/ids here).
 pg.types.setTypeParser(pg.types.builtins.INT8, (v) => Number.parseInt(v, 10));
+// date (no time) as 'YYYY-MM-DD': pg's default is a JS Date at local midnight, which shifts the day
+// across timezones. The API contract for date columns is the plain string.
+pg.types.setTypeParser(pg.types.builtins.DATE, (v) => v);
 // numeric stays a string on purpose (money/precision). Parse at the edge if you need math.
 
 export interface DbOptions {

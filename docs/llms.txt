@@ -43,13 +43,15 @@ no ORM) · Kysely migrations · pino logs · Vitest 5 · Postgres 17 · pnpm wor
       http/query.ts                  parseSort (allowlist), csvList, dateRange, likeEscape
       http/routes/index.ts           route registry (one plugin per resource)
       http/routes/health.ts          /health, /health/db
+      resources/<plural>/            repo.ts (SQL over Executor) + routes.ts (HTTP), from pnpm gen:resource
+      db/import*.ts                  importFromStaging: staging -> typed table + import_rejects
     packages/service/test/
       harness/                       fresh-db, server/useTarget, client, scenario runner, packs, matchers
       fixtures/widgets.ts            REFERENCE RESOURCE — copy its shape for new resources
       integration/                   integration-only tests (fresh DB per test)
       scenarios/                     run on BOTH integration and e2e (*.test.ts and *.scenario.json)
       e2e/                           e2e-only (properties of the container stack)
-    scripts/                         dc, verify, e2e(+journey), select-tests, test-report, data/*, probes/*
+    scripts/                         dc, verify, smoke, preflight, warm, e2e(+journey), select-tests, test-report, data/*, gen/*, probes/*
     docs/                            llms.txt (this), decisions.md, followups/
 
 ## 4. API surface
@@ -69,6 +71,12 @@ Every route must be listed here (`pnpm docs:check` enforces it).
 ## 5. Conventions (every change follows these)
 
 ### Adding a resource (the default shape — see test/fixtures/widgets.ts)
+0. Scaffold it: `pnpm gen:resource <plural> --fields "name:type[?][:mod]..." [--dry-run]` writes
+   the migration, repo, routes, a test fixture and HTTP tests, and registers them at the `@gen:`
+   markers (keep the markers). Types: `text int bigint numeric(p,s) bool date timestamptz
+   enum(a|b) ref(table)`; modifiers: `unique min0 positive max=n`. Then review the migration, add
+   business rules repro-first, and paste the printed route lines into §4. Nullable columns are
+   not sortable (keyset needs NOT NULL); the CLI names the excluded ones.
 1. Migration: `pnpm migrate:make create_<things>`. snake_case columns, `bigint generated always as
    identity` ids, `timestamptz(3)` timestamps, NOT NULL by default, CHECK/UNIQUE/FK constraints
    for every invariant the data has, indexes matching list filters/sorts (`(sort_col, id)`).
@@ -183,6 +191,13 @@ Every route must be listed here (`pnpm docs:check` enforces it).
 9. New migration -> the test template rebuilds automatically (content fingerprint); the running
    container needs `pnpm up` (rebuild) to apply it.
 10. On Windows: docker runs in WSL (`pnpm dc ...`); if containers vanish, WSL idled — `pnpm up`.
+
+11. Test-only tables (created inside a test's fresh DB) must not use names a real resource could
+    take: prefix them (`imp_shipments`, `leak_probe`). Fresh DBs are cloned from the migrated
+    template, so once `pnpm gen:resource shipments` exists, a test's `create table shipments`
+    fails with "already exists". (2026-11-13: every import test broke this way.)
+12. `date` columns come back as `YYYY-MM-DD` strings (db/kysely.ts parser), not JS Dates. A Date
+    at local midnight shifts the day across time zones.
 
 ## 8. Where to look next
 - Procedures: .claude/skills/{kickoff,feature,repro-test,run-tests,e2e,debug,db-inspect,data-recon,lens-review,orchestrate,followup,client-surface,triage,security-audit}
