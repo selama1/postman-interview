@@ -9,7 +9,7 @@ describe('fresh database per test', () => {
   const t = useTarget();
   const seen: string[] = [];
 
-  it('is migrated (baseline objects exist) and has no user tables', async () => {
+  it('is migrated (baseline objects exist) and has no user tables (import bookkeeping aside)', async () => {
     const db = t.db!;
     seen.push(db.name);
     const [fn] = await db.query(`select count(*)::int as n from pg_proc where proname = 'set_updated_at'`);
@@ -17,9 +17,13 @@ describe('fresh database per test', () => {
     const [schema] = await db.query(`select count(*)::int as n from pg_namespace where nspname = 'staging'`);
     expect(schema!.n).toBe(1);
     const user = await db.query(
-      `select table_name from information_schema.tables where table_schema = 'public' and table_name not like 'kysely_%'`,
+      `select table_name from information_schema.tables where table_schema = 'public' and table_name not like 'kysely_%'
+       order by table_name`,
     );
-    expect(user).toEqual([]);
+    // import_runs / import_rejects are the importer's bookkeeping (migration 0001), empty per test.
+    expect(user.map((r) => r.table_name)).toEqual(['import_rejects', 'import_runs']);
+    const [rows] = await db.query(`select (select count(*)::int from import_runs) + (select count(*)::int from import_rejects) as n`);
+    expect(rows!.n).toBe(0);
   });
 
   it('writes in one test are invisible to the next', async () => {
