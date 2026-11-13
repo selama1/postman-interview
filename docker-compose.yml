@@ -1,10 +1,10 @@
 # One command brings up the database and the service:
 #   docker compose up --build        (add -d --wait to background and block until healthy)
-# Verify:  curl http://localhost:3000/health/db
+# Verify:  curl http://localhost:3480/health/db   (or: sh scripts/smoke.sh)
 #
 # Services
-#   db       Postgres 17 (dev/demo data, persistent volume, port 5432)
-#   api      Fastify service; runs migrations on start, then serves on port 3000
+#   db       Postgres 17 (dev/demo data, persistent volume, host port 15432)
+#   api      Fastify service; runs migrations on start, then serves on host port 3480
 #   db-test  Throwaway Postgres for the integration test harness (profile `test`, port 55432,
 #            tmpfs + fsync off: fast and disposable; never holds data you care about)
 
@@ -26,7 +26,7 @@ services:
       - -c
       - log_min_duration_statement=500
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "${DB_PORT:-15432}:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -56,7 +56,7 @@ services:
       SLOW_QUERY_MS: ${SLOW_QUERY_MS:-250}
       LOG_SQL: ${LOG_SQL:-false}
     ports:
-      - "${API_PORT:-3000}:3000"
+      - "${API_PORT:-3480}:3000"
     depends_on:
       db:
         condition: service_healthy

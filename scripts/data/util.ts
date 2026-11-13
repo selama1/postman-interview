@@ -28,7 +28,7 @@ export function databaseUrl(): string {
     const m = /^DATABASE_URL\s*=\s*(.+)$/m.exec(readFileSync('.env', 'utf8'));
     if (m) return m[1]!.trim().replace(/^(['"])(.*)\1$/, '$2');
   }
-  return 'postgres://app:app@localhost:5432/app';
+  return 'postgres://app:app@localhost:15432/app';
 }
 
 export const quoteIdent = (s: string) => `"${s.replace(/"/g, '""')}"`;

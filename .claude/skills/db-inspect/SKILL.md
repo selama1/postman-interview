@@ -9,7 +9,7 @@ description: Inspect Postgres directly — psql access to dev/test DBs, EXPLAIN 
 - Dev DB (compose `db`): `pnpm db:psql` (= `node scripts/dc.mjs exec db psql -U app -d app`).
   One-off: `node scripts/dc.mjs exec -T db psql -U app -d app -c "<sql>"`.
 - Test DB server: `node scripts/dc.mjs exec db-test psql -U app -d <t_... from KEEP_TEST_DB=1>`.
-- Host tools: `postgres://app:app@localhost:5432/app` (dev), `...:55432/postgres` (test admin).
+- Host tools: `postgres://app:app@localhost:15432/app` (dev), `...:55432/postgres` (test admin).
 
 ## Slow query workflow
 1. Find it: slow-query warn lines in `pnpm dc logs api` (SQL + params + ms), or

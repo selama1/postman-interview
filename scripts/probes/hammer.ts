@@ -4,7 +4,7 @@
  *
  *   pnpm probe:hammer /health/db -n 500 -c 50
  *   pnpm probe:hammer /widgets -X POST -d '{"name":"x","color":"red","weightG":1}' -n 20 -c 20
- *   pnpm probe:hammer "/shipments?status=delivered&limit=50" --base http://localhost:3000
+ *   pnpm probe:hammer "/shipments?status=delivered&limit=50" --base http://localhost:3480
  *
  * Disposable probes for one-off questions go next to this file as scripts/probes/<question>.ts.
  */
@@ -15,7 +15,7 @@ if (!path || path.startsWith('-')) {
   console.error('Usage: pnpm probe:hammer <path> [-n total] [-c concurrency] [-X METHOD] [-d json] [--base url]');
   process.exit(2);
 }
-const base = (argValue('--base') ?? process.env.E2E_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+const base = (argValue('--base') ?? process.env.E2E_BASE_URL ?? 'http://localhost:3480').replace(/\/$/, '');
 const total = Number(argValue('-n') ?? 200);
 const conc = Number(argValue('-c') ?? 20);
 const method = argValue('-X') ?? 'GET';

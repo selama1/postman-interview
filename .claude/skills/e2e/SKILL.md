@@ -11,13 +11,13 @@ description: Prove behaviour end-to-end through the real docker compose stack (r
 2. `scripts/e2e-journey.mjs` — PASS/FAIL/WARN line per check, markdown report in
    `.e2e-reports/journey-<stamp>.md`, exit 0 only if every CRITICAL check passes.
 3. `vitest --project e2e` — `test/e2e/**` + every shared `test/scenarios/**` against
-   E2E_BASE_URL (default http://localhost:3000).
+   E2E_BASE_URL (default http://localhost:3480).
 Flags: `--no-build` (tests-only changes), `--down` (tear down afterwards).
 
 **Isolation on the stack:** `useTarget()` in e2e mode opens an API test session per test
 (`POST /_test/sessions`, header `x-test-session`), so scenarios get an empty migrated DB on the
 real container too — no `uniq()` gymnastics, `paginationContract`-style "exactly these rows"
-assertions hold. Manual: `curl -X POST localhost:3000/_test/sessions` then add
+assertions hold. Manual: `curl -X POST localhost:3480/_test/sessions` then add
 `-H 'x-test-session: <id>'` to any request. Any SDK/CLI/Postman collection ships with a
 `testSession` option and is tested the same way — skill `client-surface`.
 
@@ -45,10 +45,10 @@ That gap is the point of e2e. Usual causes:
 - migration not applied / failed on start → `pnpm dc logs api` (look for "Migration ... failed")
 - env differs (NODE_ENV=production hides internal error detail; LOG_FORMAT=json)
 - data from earlier runs on the shared dev DB (test assumed empty tables → use `uniq()`)
-- container networking (service uses `db:5432`, host uses `localhost:5432`)
+- container networking (service uses `db:5432`, host uses `localhost:15432`)
 Diagnose with skill `debug` (start from the x-request-id in the failure output →
 `pnpm dc logs api | grep <id>`).
 
 ## Demo / interviewer path
-`docker compose up --build` then `pnpm verify` (or `curl localhost:3000/health/db`), `/docs` for
+`docker compose up --build` then `pnpm verify` (or `curl localhost:3480/health/db`, or `sh scripts/smoke.sh`), `/docs` for
 Swagger UI, `/openapi.json` to import into Postman.

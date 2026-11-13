@@ -34,7 +34,7 @@
     "verify": "node scripts/verify.mjs",
     "docs:check": "tsx scripts/docs-check.ts",
     "prepare": "node scripts/install-git-hooks.mjs",
-    "db:types": "pnpm --filter service exec kysely-codegen --dialect postgres --url postgres://app:app@localhost:5432/app --out-file src/db/generated.ts"
+    "db:types": "pnpm --filter service exec kysely-codegen --dialect postgres --url postgres://app:app@localhost:15432/app --out-file src/db/generated.ts"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

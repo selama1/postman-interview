@@ -29,7 +29,7 @@ const get = (k: string, d: string) => process.env[k] ?? dot[k] ?? d;
 export const testEnv = {
   root: ROOT,
   adminUrl: get('TEST_DATABASE_ADMIN_URL', 'postgres://app:app@localhost:55432/postgres'),
-  e2eBaseUrl: get('E2E_BASE_URL', 'http://localhost:3000'),
+  e2eBaseUrl: get('E2E_BASE_URL', 'http://localhost:3480'),
   /** silent by default; TEST_LOG_LEVEL=debug to see request + SQL logs while debugging a test */
   logLevel: get('TEST_LOG_LEVEL', 'silent'),
   logSql: get('TEST_LOG_SQL', 'false') === 'true',

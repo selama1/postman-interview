@@ -18,7 +18,7 @@ try {
   /* no .env: defaults */
 }
 
-const base = (process.argv[2] ?? process.env.E2E_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+const base = (process.argv[2] ?? process.env.E2E_BASE_URL ?? 'http://localhost:3480').replace(/\/$/, '');
 const results = [];
 
 function check(name, ok, detail = '', critical = true) {

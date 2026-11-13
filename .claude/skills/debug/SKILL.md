@@ -54,7 +54,7 @@ Commit body: symptom → cause → fix → tests. Non-obvious environment gotcha
 | symptom | check | usual fix |
 |---|---|---|
 | `api` restarting | `pnpm dc logs api` | ConfigError (message lists var + fix) / migration failed |
-| `db` missing/exited | `pnpm dc ps -a` | WSL idled out → `pnpm up`; port 5432 taken → `DB_PORT=5433 pnpm up` |
+| `db` missing/exited | `pnpm dc ps -a` | WSL idled out → `pnpm up`; host port taken → `DB_PORT=<free> pnpm up` (or `API_PORT=`); `sh scripts/smoke.sh` diagnoses it |
 | health/db 503 | response `detail` | DB down or DATABASE_URL wrong |
 | ECONNRESET from Windows | `pnpm dc ps` | container restarting; wait for healthy (`--wait`) |
 | tests: "test database unreachable" | — | `pnpm db:test:up` |

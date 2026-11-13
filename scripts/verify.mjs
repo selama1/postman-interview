@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Proves the service <-> database connection. Exit 0 = connected.
-//   pnpm verify                         (default http://localhost:3000)
+//   pnpm verify                         (default http://localhost:3480)
 //   node scripts/verify.mjs http://host:port
 // Note: sets process.exitCode instead of calling process.exit() — on Windows, exiting while
 // fetch sockets are open trips a libuv assertion (exit 127).
@@ -11,7 +11,7 @@ try {
   /* no .env: defaults */
 }
 
-const base = (process.argv[2] ?? process.env.E2E_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+const base = (process.argv[2] ?? process.env.E2E_BASE_URL ?? 'http://localhost:3480').replace(/\/$/, '');
 
 async function get(path) {
   const res = await fetch(base + path, { signal: AbortSignal.timeout(5000) });
