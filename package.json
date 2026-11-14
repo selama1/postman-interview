@@ -15,6 +15,7 @@
     "test:unit": "vitest run --project unit",
     "test:int": "vitest run --project integration",
     "test:e2e": "node scripts/e2e.mjs",
+    "test:docker": "node scripts/dc.mjs --profile test run --rm --build tests",
     "test:changed": "node scripts/select-tests.mjs",
     "test:report": "node scripts/test-report.mjs",
     "dc": "node scripts/dc.mjs",

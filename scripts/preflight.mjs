@@ -57,7 +57,7 @@ if (viaWsl) {
   const ka = run('wsl', ['-e', 'pgrep', '-f', 'pe-keepalive']).ok;
   add(ka ? 'PASS' : 'WARN', 'WSL keep-alive running', '', 'it starts with pnpm up; without it WSL idles out and stops the containers');
 }
-for (const img of ['postgres:17-alpine', 'node:24-alpine']) {
+for (const img of ['postgres:17-alpine', 'node:24-alpine', 'node:24-bookworm-slim']) {
   const has = docker('image', 'inspect', img, '--format', '{{.Id}}').ok;
   add(has ? 'PASS' : 'WARN', `image cached: ${img}`, '', 'pnpm warm (on good Wi-Fi) so the stack starts offline');
 }

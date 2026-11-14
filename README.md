@@ -39,6 +39,17 @@ When a check fails, the script prints *what happened*, the *likely cause* and *h
 with the relevant command output or container log lines. Run it on Windows from Git Bash with
 Docker Desktop, or inside WSL if Docker runs there.
 
+**Full test suite, still only Docker.** Every test layer runs in a third container (profile
+`test`): typecheck, unit, integration against a throwaway Postgres (a fresh empty database per
+test), then the e2e checks against the running service.
+
+```bash
+docker compose --profile test run --rm --build tests
+```
+
+It ends with one PASS/FAIL line per layer. `docker compose up` alone still starts only the
+database and the service.
+
 **Stop:** `docker compose down`. That keeps the dev data; add `-v` to delete it. The containers
 restart with Docker until you stop them.
 
@@ -131,7 +142,8 @@ rather than served from real data. A header sent with an empty value is always r
 
 ## Development
 
-Development and the test suite run on the host and need Node 24 and pnpm (`corepack enable`).
+Day-to-day development runs on the host (faster loop: watch mode, single tests) and needs Node 24
+and pnpm (`corepack enable`). The `tests` container above runs the same suites without them.
 
 ```bash
 pnpm install
@@ -140,6 +152,7 @@ pnpm up                 # compose stack (build + wait for healthy)
 pnpm db:test:up         # throwaway Postgres for the integration tests (host port 55432)
 pnpm test               # typecheck + unit + integration
 pnpm test:e2e           # rebuild + journey + e2e suite against the stack
+pnpm test:docker        # all of the above inside the tests container
 pnpm verify             # same check as curl /health/db, exit code 0 only when connected
 pnpm preflight          # go/no-go checklist before a demo (add --quick to skip the test suite)
 pnpm warm               # pull/build/prime everything so the stack starts without network

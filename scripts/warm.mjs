@@ -29,7 +29,11 @@ const dockerOnPath = spawnSync('docker', ['--version'], { stdio: 'ignore' }).sta
 const [dk, dkArgs] = win && !dockerOnPath ? ['wsl', ['-e', 'docker']] : ['docker', []];
 step('pull the api base image (node:24-alpine)', dk, [...dkArgs, 'pull', 'node:24-alpine'],
   'check the network / Docker Hub login (docker login), then re-run pnpm warm');
+step('pull the test-runner base image (node:24-bookworm-slim)', dk, [...dkArgs, 'pull', 'node:24-bookworm-slim'],
+  'check the network / Docker Hub login (docker login), then re-run pnpm warm');
 step('build the api image (dependency layers)', 'node', dc('build', 'api'),
+  'read the build error above; if it is a network failure, re-run pnpm warm');
+step('build the tests image (pnpm test:docker runs every layer in it)', 'node', dc('--profile', 'test', 'build', 'tests'),
   'read the build error above; if it is a network failure, re-run pnpm warm');
 step('prime the pnpm store', 'pnpm', ['install', '--frozen-lockfile', '--prefer-offline'],
   'run pnpm install and read its error');

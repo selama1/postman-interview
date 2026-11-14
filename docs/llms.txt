@@ -15,9 +15,11 @@ alone doesn't prevent. Process rules live in CLAUDE.md; procedures in .claude/sk
     pnpm db:test:up              # throwaway Postgres for integration tests (port 55432)
     pnpm test                    # typecheck + unit + integration (live DB, fresh DB per test)
     pnpm test:e2e                # rebuild image, run journey + e2e suite against the stack
+    pnpm test:docker             # every layer inside the `tests` container: only Docker needed
 
 Interviewers (no pnpm needed): `docker compose up --build`, then
-`curl http://localhost:3480/health/db` (fresh machine: `sh scripts/smoke.sh`).
+`curl http://localhost:3480/health/db` (fresh machine: `sh scripts/smoke.sh`). Full test suite
+with only Docker: `docker compose --profile test run --rm --build tests`.
 
 ## 2. Stack
 

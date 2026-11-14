@@ -1,5 +1,6 @@
 # CI on a clean Ubuntu machine: the same two paths an interviewer or a fresh laptop would take.
 #   smoke  - Docker + curl only (no Node): clone, sh scripts/smoke.sh --failover
+#   docker-tests - every test layer in the compose `tests` container (Docker only, no Node)
 #   test   - the developer path: typecheck + unit + integration (live Postgres), then e2e against
 #            the rebuilt compose stack
 name: ci
@@ -26,6 +27,18 @@ jobs:
       - name: Container logs on failure
         if: failure()
         run: docker compose logs --no-color api db
+
+  docker-tests:
+    name: tests in Docker (no host Node)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: All test layers in the tests container
+        run: docker compose --profile test run --rm --build tests
+      - name: Container logs on failure
+        if: failure()
+        run: docker compose --profile test logs --no-color api db db-test
 
   test:
     name: test (unit + integration + e2e)

@@ -7,6 +7,9 @@
 #   api      Fastify service; runs migrations on start, then serves on host port 3480
 #   db-test  Throwaway Postgres for the integration test harness (profile `test`, port 55432,
 #            tmpfs + fsync off: fast and disposable; never holds data you care about)
+#   tests    Every test layer in a container (profile `test`), so only Docker is needed:
+#              docker compose --profile test run --rm --build tests
+#            Integration runs against db-test, e2e against api, over the compose network.
 
 name: planet-express
 
@@ -42,6 +45,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: runtime
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
@@ -95,6 +99,21 @@ services:
       timeout: 3s
       retries: 30
     restart: unless-stopped
+
+  tests:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    environment:
+      TEST_DATABASE_ADMIN_URL: postgres://app:app@db-test:5432/postgres
+      E2E_BASE_URL: http://api:3000
+    depends_on:
+      db-test:
+        condition: service_healthy
+      api:
+        condition: service_healthy
 
 volumes:
   db-data:
