@@ -27,24 +27,24 @@ afterEach(() => rmSync(root, { recursive: true, force: true }));
 describe('gen:resource plan/apply', () => {
   it('creates the five files, numbers the migration after the last one, registers above the markers', () => {
     w(`${PATHS.migrations}/0007_something.ts`, 'export {};\n');
-    const p = plan(root, 'customers', 'name:text:unique, tier:enum(basic|gold)');
+    const p = plan(root, 'authors', 'name:text:unique, tier:enum(basic|gold)');
     expect(p.files.map((f) => f.rel)).toEqual([
-      'packages/service/src/db/migrations/0008_create_customers.ts',
-      'packages/service/src/resources/customers/repo.ts',
-      'packages/service/src/resources/customers/routes.ts',
-      'packages/service/test/fixtures/customers.ts',
-      'packages/service/test/integration/customers.test.ts',
+      'packages/service/src/db/migrations/0008_create_authors.ts',
+      'packages/service/src/resources/authors/repo.ts',
+      'packages/service/src/resources/authors/routes.ts',
+      'packages/service/test/fixtures/authors.ts',
+      'packages/service/test/integration/authors.test.ts',
     ]);
     apply(root, p);
-    expect(r(PATHS.schema)).toContain("import type { CustomersTable } from '../resources/customers/repo.js';\n// @gen:table-imports");
-    expect(r(PATHS.schema)).toContain('  customers: CustomersTable;\n  // @gen:tables');
-    expect(r(PATHS.routesIndex)).toContain("  await app.register(customersRoutes, { prefix: '/customers' });\n  // @gen:routes");
+    expect(r(PATHS.schema)).toContain("import type { AuthorsTable } from '../resources/authors/repo.js';\n// @gen:table-imports");
+    expect(r(PATHS.schema)).toContain('  authors: AuthorsTable;\n  // @gen:tables');
+    expect(r(PATHS.routesIndex)).toContain("  await app.register(authorsRoutes, { prefix: '/authors' });\n  // @gen:routes");
   });
 
   it('refuses to overwrite any existing file, names it, and writes nothing', () => {
-    apply(root, plan(root, 'customers', 'name:text'));
+    apply(root, plan(root, 'authors', 'name:text'));
     const before = r(PATHS.schema);
-    expect(() => plan(root, 'customers', 'name:text')).toThrow(/refusing to overwrite[\s\S]*repo\.ts[\s\S]*delete them or choose another name/);
+    expect(() => plan(root, 'authors', 'name:text')).toThrow(/refusing to overwrite[\s\S]*repo\.ts[\s\S]*delete them or choose another name/);
     w(`${PATHS.tests}/boxes.test.ts`, '// mine\n');
     expect(() => plan(root, 'boxes', 'name:text')).toThrow(/boxes\.test\.ts[\s\S]*delete it or choose another name/);
     expect(existsSync(path.join(root, PATHS.resources, 'boxes'))).toBe(false);
@@ -54,8 +54,8 @@ describe('gen:resource plan/apply', () => {
 
   it('fails loudly (and writes nothing) when a marker is missing', () => {
     w(PATHS.routesIndex, 'export async function registerRoutes(app: any) {}\n');
-    expect(() => plan(root, 'customers', 'name:text')).toThrow(GenError);
-    expect(() => plan(root, 'customers', 'name:text')).toThrow(/marker "\/\/ @gen:route-imports" not found in packages\/service\/src\/http\/routes\/index\.ts/);
+    expect(() => plan(root, 'authors', 'name:text')).toThrow(GenError);
+    expect(() => plan(root, 'authors', 'name:text')).toThrow(/marker "\/\/ @gen:route-imports" not found in packages\/service\/src\/http\/routes\/index\.ts/);
     expect(existsSync(path.join(root, PATHS.resources))).toBe(false);
   });
 
@@ -66,17 +66,17 @@ describe('gen:resource plan/apply', () => {
   });
 
   it('ref target: unknown table is an error with the fix; hand-made table warns; generated resource is used as fixture', () => {
-    expect(() => plan(root, 'shipments', 'customerId:ref(customers)')).toThrow(/no migration creates a table named "customers"[\s\S]*gen:resource customers/);
+    expect(() => plan(root, 'books', 'authorId:ref(authors)')).toThrow(/no migration creates a table named "authors"[\s\S]*gen:resource authors/);
 
     w(`${PATHS.migrations}/0001_orders.ts`, 'await sql`create table orders (id bigint primary key)`.execute(db);\n');
     const hand = plan(root, 'lines', 'orderId:ref(orders)');
     expect(hand.warnings.join('\n')).toMatch(/orders.*no generated resource fixture/);
     expect(hand.files.find((f) => f.rel.endsWith('lines.test.ts'))!.content).toContain('insert into orders default values');
 
-    apply(root, plan(root, 'customers', 'name:text'));
-    const gen = plan(root, 'shipments', 'customerId:ref(customers)');
+    apply(root, plan(root, 'authors', 'name:text'));
+    const gen = plan(root, 'books', 'authorId:ref(authors)');
     expect(gen.warnings).toEqual([]);
-    expect(gen.files.find((f) => f.rel.endsWith('shipments.test.ts'))!.content).toContain("import { insertCustomer } from '../fixtures/customers.js'");
+    expect(gen.files.find((f) => f.rel.endsWith('books.test.ts'))!.content).toContain("import { insertAuthor } from '../fixtures/authors.js'");
   });
 
   it('self references are refused with a reason', () => {
@@ -90,7 +90,7 @@ describe('gen:resource plan/apply', () => {
   });
 
   it('prints one docs line per route', () => {
-    const lines = docsLines(plan(root, 'customers', 'name:text, tier:enum(a|b)'));
-    expect(lines.map((l) => l.trim().split(/\s{2,}/)[0])).toEqual(['POST /customers/', 'GET /customers/', 'GET /customers/:id', 'PATCH /customers/:id', 'DELETE /customers/:id']);
+    const lines = docsLines(plan(root, 'authors', 'name:text, tier:enum(a|b)'));
+    expect(lines.map((l) => l.trim().split(/\s{2,}/)[0])).toEqual(['POST /authors/', 'GET /authors/', 'GET /authors/:id', 'PATCH /authors/:id', 'DELETE /authors/:id']);
   });
 });

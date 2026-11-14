@@ -7,10 +7,10 @@ import { MAX_LIMIT } from '../../src/http/pagination.js';
  * Contract packs: generic, data-independent behaviour every resource should have. Each pack
  * defines a describe() block of real HTTP tests against a fresh DB per test.
  *
- *   crudContract({ name: 'shipment', path: '/shipments', make: (i) => ({ ... }), patch: () => ({ ... }) });
- *   validationContract({ path: '/shipments', valid: {...}, cases: [{ name: 'negative weight', body: {...}, field: 'weightKg' }] });
- *   paginationContract({ path: '/shipments', make: (i) => ({...}), sorts: [{ sort: '-createdAt', compare: ... }] });
- *   uniqueRaceContract({ path: '/customers', make: () => ({ email: 'same@x' }) });
+ *   crudContract({ name: 'book', path: '/books', make: (i) => ({ ... }), patch: () => ({ ... }) });
+ *   validationContract({ path: '/books', valid: {...}, cases: [{ name: 'negative price', body: {...}, field: 'priceUsd' }] });
+ *   paginationContract({ path: '/books', make: (i) => ({...}), sorts: [{ sort: '-createdAt', compare: ... }] });
+ *   uniqueRaceContract({ path: '/authors', make: () => ({ email: 'same@x' }) });
  *
  * They are a floor, not the spec: business rules still get their own repro-first tests.
  */

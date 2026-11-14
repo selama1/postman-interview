@@ -4,7 +4,7 @@
  *
  *   pnpm probe:hammer /health/db -n 500 -c 50
  *   pnpm probe:hammer /widgets -X POST -d '{"name":"x","color":"red","weightG":1}' -n 20 -c 20
- *   pnpm probe:hammer "/shipments?status=delivered&limit=50" --base http://localhost:3480
+ *   pnpm probe:hammer "/books?status=published&limit=50" --base http://localhost:3480
  *
  * Disposable probes for one-off questions go next to this file as scripts/probes/<question>.ts.
  */

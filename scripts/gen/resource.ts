@@ -17,7 +17,7 @@ import { EXAMPLE, MODIFIERS, SpecError, TYPES } from './spec.js';
 
 const HELP = `pnpm gen:resource <plural-name> --fields "<spec>" [--dry-run]
 
-  <plural-name>   plural snake_case table name, e.g. shipments
+  <plural-name>   plural snake_case table name, e.g. books
   --fields        comma-separated  name:type[?][:modifier...]
                     name       camelCase (-> snake_case column); id/createdAt/updatedAt are reserved
                     types      ${TYPES.join(' | ')}
@@ -29,7 +29,7 @@ const HELP = `pnpm gen:resource <plural-name> --fields "<spec>" [--dry-run]
   --dry-run       print the paths and file contents; write nothing
 
   example:
-    pnpm gen:resource shipments --fields "${EXAMPLE}, shippedAt:timestamptz?"
+    pnpm gen:resource books --fields "${EXAMPLE}, publishedAt:timestamptz?"
 
 Writes: migration, repo, routes, test fixture, integration test; edits db/schema.ts and
 http/routes/index.ts at their @gen: markers. Never overwrites (exit 2). Exit 2 on any bad input;

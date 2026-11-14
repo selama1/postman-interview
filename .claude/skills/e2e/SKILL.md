@@ -31,10 +31,10 @@ fix if it is live or missing.
 In `scripts/e2e-journey.mjs` under "feature journeys", walk the flow as a client would:
 create what you read (unique names: `${Date.now()}`), then list/filter/page, then the error path.
 ```js
-const s = await call('POST', '/shipments', { ... });
-check('create shipment -> 201 + location', s.status === 201 && s.headers.get('location'), `status ${s.status}`);
-const l = await call('GET', `/shipments?customerId=${cid}`);
-check('list by customer includes it', l.json?.items?.some((x) => x.id === s.json?.id));
+const s = await call('POST', '/books', { ... });
+check('create book -> 201 + location', s.status === 201 && s.headers.get('location'), `status ${s.status}`);
+const l = await call('GET', `/books?authorId=${aid}`);
+check('list by author includes it', l.json?.items?.some((x) => x.id === s.json?.id));
 ```
 Non-critical observations (latency budgets, warnings) → `check(name, ok, detail, false)`.
 Also prefer putting reusable journeys in `test/scenarios/*.test.ts` — they run on both targets.

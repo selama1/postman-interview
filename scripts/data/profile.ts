@@ -1,8 +1,8 @@
 /**
  * Profile a table so schema decisions come from facts, not guesses.
  *
- *   pnpm data:profile staging.shipments
- *   pnpm data:profile public.customers --sample 5
+ *   pnpm data:profile staging.books
+ *   pnpm data:profile public.authors --sample 5
  *
  * Per column: non-null / null / empty counts, distinct count, candidate-key flag, inferred type
  * (fraction of values parsing as int, decimal, bool, date, timestamp, uuid, email), length range,

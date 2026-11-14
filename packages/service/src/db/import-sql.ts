@@ -38,9 +38,9 @@ function normalized(rule: PlannedColumn['rule'], x: RawBuilder<unknown>): RawBui
     case 'upper':
       return sql`upper(btrim(${x}))`;
     case 'number': {
-      // Strip a trailing unit ("kg", "%", "km/h") and all whitespace; thousands commas only when the
+      // Strip a trailing unit ("USD", "%", "km/h") and all whitespace; thousands commas only when the
       // value is a well-formed grouped number ("1,234.5"), so "12,5" stays invalid instead of
-      // silently becoming 125. If stripping leaves nothing ("kg", "N/A") keep the original so the
+      // silently becoming 125. If stripping leaves nothing ("USD", "N/A") keep the original so the
       // cast fails and the row is rejected rather than treated as blank.
       const stripped = sql`coalesce(nullif(regexp_replace(regexp_replace(btrim(${x}), '[[:alpha:]%°/]+$', ''), '[[:space:]]', '', 'g'), ''), btrim(${x}))`;
       return sql`(case when ${stripped} ~ '^[+-]?[0-9]{1,3}(,[0-9]{3})+(\\.[0-9]+)?$' then replace(${stripped}, ',', '') else ${stripped} end)`;

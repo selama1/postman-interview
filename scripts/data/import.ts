@@ -1,14 +1,14 @@
 /**
  * Import staging tables into typed tables; every bad row lands in import_rejects.
  *
- *   tsx scripts/data/import.ts scripts/data/specs/shipments.ts
+ *   tsx scripts/data/import.ts scripts/data/specs/books.ts
  *   DATABASE_URL=... tsx scripts/data/import.ts <spec-file.ts>      (defaults to .env / compose dev DB)
  *
  * The spec file default-exports an ImportSpec, or an array of them run in order (parents before
  * children, so `ref` lookups find the parent rows). See importFromStaging's JSDoc for a full spec:
  *
  *   import type { ImportSpec } from '../../packages/service/src/db/import.js';
- *   export default { source: 'staging.customers', target: 'customers', key: ['external_id'], columns: {...} } satisfies ImportSpec;
+ *   export default { source: 'staging.authors', target: 'authors', key: ['external_id'], columns: {...} } satisfies ImportSpec;
  *
  * Exit code 0 even with rejects (rejects are data, inspect them); 1 only on errors.
  */

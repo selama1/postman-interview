@@ -31,7 +31,7 @@ ships with test mode as a first-class option, and its own tests use it. CLAUDE.m
 - Errors: surface the server's problem+json as a typed error (`status`, `code`, `detail`, `fix`,
   `requestId`) — don't flatten it into a string. Retries: idempotent methods on 503/429/
   `RETRYABLE_CONFLICT` only; never on 4xx auth errors.
-- Pagination: an async iterator over keyset pages (`for await (const s of client.shipments.list())`).
+- Pagination: an async iterator over keyset pages (`for await (const s of client.books.list())`).
 
 ## 2. Tests for the client (live, isolated)
 - The client's tests run against the compose stack (or `startTestServer`) and open one test

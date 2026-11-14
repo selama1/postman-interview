@@ -16,13 +16,13 @@
  *              max=<n>                 text length cap, CHECK + zod (default 200, 1..10000)
  *
  *   Example:
- *     "trackingCode:text:unique, status:enum(pending|in_transit|delivered), weightKg:numeric(10,2),
- *      declaredValue:int?:min0, customerId:ref(customers), shippedAt:timestamptz?"
+ *     "isbn:text:unique, status:enum(draft|in_review|published), priceUsd:numeric(10,2),
+ *      pageCount:int?:min0, authorId:ref(authors), publishedAt:timestamptz?"
  */
 
 export const TYPES = ['text', 'int', 'bigint', 'numeric(p,s)', 'bool', 'date', 'timestamptz', 'enum(a|b|c)', 'ref(<table>)'] as const;
 export const MODIFIERS = ['unique', 'min0', 'positive', 'max=<n>'] as const;
-export const EXAMPLE = 'trackingCode:text:unique, status:enum(pending|delivered), weightKg:numeric(10,2), declaredValue:int?:min0, customerId:ref(customers)';
+export const EXAMPLE = 'isbn:text:unique, status:enum(draft|published), priceUsd:numeric(10,2), pageCount:int?:min0, authorId:ref(authors)';
 export const DEFAULT_TEXT_MAX = 200;
 
 export type Kind = 'text' | 'int' | 'bigint' | 'numeric' | 'bool' | 'date' | 'timestamptz' | 'enum' | 'ref';
@@ -70,7 +70,7 @@ export const camel = (s: string) => {
   const p = pascal(s);
   return p[0]!.toLowerCase() + p.slice(1);
 };
-/** Naive English singular, good enough for labels (customers -> customer, categories -> category, boxes -> box). */
+/** Naive English singular, good enough for labels (authors -> author, categories -> category, boxes -> box). */
 export const singular = (plural: string) => {
   if (/ies$/.test(plural)) return `${plural.slice(0, -3)}y`;
   if (/(s|x|z|ch|sh)es$/.test(plural)) return plural.slice(0, -2);
@@ -104,7 +104,7 @@ const bad = (token: string, why: string, hint?: string): never => {
 export function parseTableName(raw: string | undefined): string {
   if (!raw || !TABLE_RE.test(raw) || raw.length > 40) {
     throw new SpecError(
-      `bad resource name "${raw ?? ''}": use the PLURAL snake_case table name (lowercase letters, digits, underscores; starts with a letter; max 40).\n  example: pnpm gen:resource shipments --fields "${EXAMPLE}"`,
+      `bad resource name "${raw ?? ''}": use the PLURAL snake_case table name (lowercase letters, digits, underscores; starts with a letter; max 40).\n  example: pnpm gen:resource books --fields "${EXAMPLE}"`,
     );
   }
   return raw;
@@ -113,7 +113,7 @@ export function parseTableName(raw: string | undefined): string {
 export function parseField(token: string): Field {
   const [name = '', typeRaw = '', ...mods] = token.split(':').map((s) => s.trim());
   if (!name || !typeRaw) bad(token, 'expected name:type[?][:modifier...]');
-  if (!NAME_RE.test(name)) bad(token, `field name "${name}" must be camelCase (letters/digits, starts lowercase)`, 'example: weightKg:numeric(10,2)');
+  if (!NAME_RE.test(name)) bad(token, `field name "${name}" must be camelCase (letters/digits, starts lowercase)`, 'example: priceUsd:numeric(10,2)');
   if (RESERVED.has(name)) bad(token, `"${name}" is reserved: id, createdAt and updatedAt are added by the generator`);
 
   const nullable = typeRaw.endsWith('?');
@@ -128,19 +128,19 @@ export function parseField(token: string): Field {
     f.precision = Number(m[1]);
     f.scale = Number(m[2]);
     if (f.precision < 1 || f.precision > 38 || f.scale >= f.precision) {
-      bad(token, `numeric(${f.precision},${f.scale}) needs 1 <= precision <= 38 and scale < precision`, 'example: weightKg:numeric(10,2)');
+      bad(token, `numeric(${f.precision},${f.scale}) needs 1 <= precision <= 38 and scale < precision`, 'example: priceUsd:numeric(10,2)');
     }
   } else if ((m = t.match(/^enum\(([^)]*)\)$/))) {
     f.kind = 'enum';
     f.values = m[1]!.split('|').filter((v) => v !== '');
-    if (f.values.some((v) => !/^[A-Za-z0-9_]+$/.test(v))) bad(token, 'enum values may contain only letters, digits and underscores', 'example: status:enum(pending|in_transit|delivered)');
-    if (f.values.length < 2) bad(token, 'enum needs at least two values separated by |', 'example: status:enum(pending|in_transit|delivered)');
+    if (f.values.some((v) => !/^[A-Za-z0-9_]+$/.test(v))) bad(token, 'enum values may contain only letters, digits and underscores', 'example: status:enum(draft|in_review|published)');
+    if (f.values.length < 2) bad(token, 'enum needs at least two values separated by |', 'example: status:enum(draft|in_review|published)');
     if (new Set(f.values).size !== f.values.length) bad(token, 'enum values must be distinct');
   } else if ((m = t.match(/^ref\(([^)]*)\)$/))) {
     f.kind = 'ref';
     f.refTable = m[1]!;
-    if (!TABLE_RE.test(f.refTable)) bad(token, `ref target "${f.refTable}" must be a snake_case table name`, 'example: customerId:ref(customers)');
-    if (!name.endsWith('Id')) bad(token, `ref field "${name}" should end in Id (the column is ${snake(name)})`, 'example: customerId:ref(customers)');
+    if (!TABLE_RE.test(f.refTable)) bad(token, `ref target "${f.refTable}" must be a snake_case table name`, 'example: authorId:ref(authors)');
+    if (!name.endsWith('Id')) bad(token, `ref field "${name}" should end in Id (the column is ${snake(name)})`, 'example: authorId:ref(authors)');
   } else {
     bad(token, `unknown type "${t}"`);
   }

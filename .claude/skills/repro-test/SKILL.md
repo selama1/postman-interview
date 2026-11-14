@@ -22,17 +22,17 @@ rows, corrupted imports).
 import { describe, expect, it } from 'vitest';
 import { useTarget } from '../harness/server.js';
 
-describe('shipments: bug #<n> — <symptom as the user saw it>', () => {
+describe('books: bug #<n> — <symptom as the user saw it>', () => {
   const t = useTarget();
   it('<expected behaviour, stated as the rule>', async () => {
     await t.db!.query(`insert into ... values ...`);           // arrange (or t.client.post)
-    const res = await t.client.get('/shipments', { status: 'lost' });
+    const res = await t.client.get('/books', { status: 'out_of_print' });
     expect(res).toHaveStatus(200);
     expect(res.body.items.map((s: any) => s.id)).toEqual([...]);
   });
 });
 ```
-Name the test after the RULE ("cancelled shipments are excluded from revenue"), not the ticket.
+Name the test after the RULE ("cancelled books are excluded from revenue"), not the ticket.
 
 ## 3. Prove it red — for the right reason
 `npx vitest run <file> -t "<name>"`. Read the failure: the matcher prints the full exchange.

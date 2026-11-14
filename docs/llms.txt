@@ -111,7 +111,7 @@ Every route must be listed here (`pnpm docs:check` enforces it).
 - Raw data imports go to the `staging` schema (scripts/data/load.ts). A migration creates the real
   table, and `pnpm data:import <spec.ts>` (src/db/import.ts `importFromStaging`) fills it set-based.
   Every bad row goes to `import_rejects` (source_row, ALL reasons, raw jsonb); `import_runs` holds
-  the counts. `normalize: 'number'` accepts "1,234.5 kg"; "12,5" is rejected, not guessed.
+  the counts. `normalize: 'number'` accepts "1,234.5 USD"; "12,5" is rejected, not guessed.
 
 ### Test mode (x-test-session) — every route supports it by construction
 - Handlers read the DB via **`req.db`, never `app.db`** (enforced by
@@ -195,8 +195,8 @@ Every route must be listed here (`pnpm docs:check` enforces it).
 10. On Windows: docker runs in WSL (`pnpm dc ...`); if containers vanish, WSL idled — `pnpm up`.
 
 11. Test-only tables (created inside a test's fresh DB) must not use names a real resource could
-    take: prefix them (`imp_shipments`, `leak_probe`). Fresh DBs are cloned from the migrated
-    template, so once `pnpm gen:resource shipments` exists, a test's `create table shipments`
+    take: prefix them (`imp_books`, `leak_probe`). Fresh DBs are cloned from the migrated
+    template, so once `pnpm gen:resource books` exists, a test's `create table books`
     fails with "already exists". (2026-11-13: every import test broke this way.)
 12. `date` columns come back as `YYYY-MM-DD` strings (db/kysely.ts parser), not JS Dates. A Date
     at local midnight shifts the day across time zones.

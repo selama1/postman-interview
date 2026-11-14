@@ -1,6 +1,6 @@
 ---
 name: ui-surface
-description: Build a basic web UI on top of the API during the live session (a page to list, view or create shipments, a dashboard for a stakeholder, a form). Covers the default shape (one static page served by the api at /ui, same origin, no build step), the thin-UI rule, test mode in the UI, the container pitfall, how to demo it, and the OPTIONAL Playwright test that runs on the host against the installed Edge/Chrome. Use for "add a UI", "a simple page for X", "show this in a browser", "a dashboard for the regulator".
+description: Build a basic web UI on top of the API during the live session (a page to list, view or create books, a dashboard for an editor, a form). Covers the default shape (one static page served by the api at /ui, same origin, no build step), the thin-UI rule, test mode in the UI, the container pitfall, how to demo it, and the OPTIONAL Playwright test that runs on the host against the installed Edge/Chrome. Use for "add a UI", "a simple page for X", "show this in a browser", "a dashboard for the regulator".
 ---
 
 # UI surface: thin page over the API, test mode included
@@ -50,8 +50,8 @@ packages/service/src/http/ui.ts          registers @fastify/static at /ui/
   `POST /_test/sessions` and reloads with `?testSession=`. This is how the demo and the tests get
   empty data without touching the main DB.
 - **Security:** render data with `textContent` / `createElement`, never `innerHTML` with API data
-  (stored XSS through a customer name). Same origin, so no CORS config. No secrets in the page.
-- **States:** loading, empty ("no shipments yet"), error, data. Keyset pagination: a "next" button
+  (stored XSS through a author name). Same origin, so no CORS config. No secrets in the page.
+- **States:** loading, empty ("no books yet"), error, data. Keyset pagination: a "next" button
   driven by the API's cursor, not page numbers.
 
 ## 4. Proof, in order of necessity
@@ -83,7 +83,7 @@ image. The browser is the installed Edge or Chrome, so nothing is downloaded.
   ```
 - One test per flow, each in its own test session (the same isolation as every other layer):
   ```ts
-  test('a created shipment appears in the list', async ({ page, request }) => {
+  test('a created book appears in the list', async ({ page, request }) => {
     const { id } = await (await request.post('/_test/sessions')).json();
     try {
       await page.goto(`/ui/?testSession=${id}`);

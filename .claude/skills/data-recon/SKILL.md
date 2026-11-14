@@ -9,7 +9,7 @@ description: Load an unfamiliar dataset (CSV/TSV/JSON/NDJSON) losslessly into th
 ```
 pnpm db:up                                   # dev DB
 pnpm data:load data/raw/<file>.csv           # -> staging.<file>  (all TEXT + _row)
-pnpm data:load data/raw/x.json --table customers --replace
+pnpm data:load data/raw/x.json --table authors --replace
 ```
 Several files → fan out: one Haiku `scout` per file running load + profile, returning the
 markdown report (skill `orchestrate`). Load all files before profiling so FK detection sees them.
@@ -19,9 +19,9 @@ markdown report (skill `orchestrate`). Load all files before profiling so FK det
 Read in this order:
 1. **Candidate keys** — a natural key? (Then: surrogate id + UNIQUE on it, or use it as PK.)
 2. **Inferred types + "not <type>" samples** — the values that break the cast are your import
-   rules (e.g. `n/a` in weights, `01/02/2026` dates).
-3. **Flags** — mixed types, mixed date formats, padded values, case variants (`Delivered` vs
-   `delivered `), placeholder nulls, constants.
+   rules (e.g. `n/a` in prices, `01/02/2026` dates).
+3. **Flags** — mixed types, mixed date formats, padded values, case variants (`Published` vs
+   `published `), placeholder nulls, constants.
 4. **Candidate FKs** with orphan counts — orphans decide: FK + reject orphans, or nullable FK.
 5. Distinct counts on low-cardinality text → enum-like → CHECK constraint (or lookup table).
 

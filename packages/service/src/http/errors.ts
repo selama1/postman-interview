@@ -9,8 +9,8 @@ import { hasZodFastifySchemaValidationErrors, isResponseSerializationError } fro
  * (grep it in the logs).
  *
  *   { "type": "urn:problem:NOT_FOUND", "title": "Not Found", "status": 404,
- *     "code": "NOT_FOUND", "detail": "shipment 42 does not exist",
- *     "fix": "List shipments with GET /shipments to find a valid id.", "requestId": "..." }
+ *     "code": "NOT_FOUND", "detail": "book 42 does not exist",
+ *     "fix": "List books with GET /books to find a valid id.", "requestId": "..." }
  *
  * Throw AppError (or a helper below) from handlers/repos; never hand-build error replies.
  * Postgres constraint errors are translated centrally, so a UNIQUE/FK/CHECK constraint in a

@@ -130,13 +130,13 @@ export async function planImport(db: Executor, spec: ImportSpec): Promise<Import
 
   // ---- pure checks -------------------------------------------------------------------------
   if (!isQualified(spec.source)) {
-    bad(`source ${JSON.stringify(spec.source)} is not a table name`, `use "schema.table" or "table" with letters, digits and underscores only, e.g. source: 'staging.shipments'`);
+    bad(`source ${JSON.stringify(spec.source)} is not a table name`, `use "schema.table" or "table" with letters, digits and underscores only, e.g. source: 'staging.books'`);
   }
   if (!isQualified(spec.target)) {
-    bad(`target ${JSON.stringify(spec.target)} is not a table name`, `use "schema.table" or "table" with letters, digits and underscores only, e.g. target: 'shipments'`);
+    bad(`target ${JSON.stringify(spec.target)} is not a table name`, `use "schema.table" or "table" with letters, digits and underscores only, e.g. target: 'books'`);
   }
   const entries = Object.entries(spec.columns ?? {});
-  if (entries.length === 0) bad('columns is empty', `map at least one target column, e.g. columns: { tracking_code: { from: 'tracking_code', type: 'text', required: true } }`);
+  if (entries.length === 0) bad('columns is empty', `map at least one target column, e.g. columns: { isbn: { from: 'isbn', type: 'text', required: true } }`);
   const onDuplicate = spec.onDuplicate ?? 'reject';
   if (!['reject', 'skip', 'update'].includes(onDuplicate)) {
     bad(`onDuplicate ${JSON.stringify(spec.onDuplicate)} is not valid`, `use 'reject' (default), 'skip' or 'update'`);
@@ -169,10 +169,10 @@ export async function planImport(db: Executor, spec: ImportSpec): Promise<Import
       bad(`${at}.check needs { sql, reason } and sql must reference the value as $v`, `e.g. check: { sql: '$v > 0', reason: 'must be positive' }`);
     }
     if (rule.ref !== undefined && !(isQualified(rule.ref.table) && isIdent(rule.ref.column))) {
-      bad(`${at}.ref ${JSON.stringify(rule.ref)} has an invalid identifier`, `e.g. ref: { table: 'customers', column: 'id' }`);
+      bad(`${at}.ref ${JSON.stringify(rule.ref)} has an invalid identifier`, `e.g. ref: { table: 'authors', column: 'id' }`);
     }
     if (rule.default !== undefined && (typeof rule.default !== 'string' || rule.default.trim() === '')) {
-      bad(`${at}.default must be a non-empty SQL literal string`, `e.g. default: "'pending'" or default: '0'`);
+      bad(`${at}.default must be a non-empty SQL literal string`, `e.g. default: "'draft'" or default: '0'`);
     }
   }
   const key = spec.key ?? [];

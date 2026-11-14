@@ -24,8 +24,8 @@ description: Inspect Postgres directly — psql access to dev/test DBs, EXPLAIN 
    actual off by 10×+ → `analyze <table>`; Sort with external merge → index matching ORDER BY or
    more work_mem; Nested Loop with huge inner loops → missing join index.
 3. Index to match the access path: equality columns first, then range/sort column, then id for
-   keyset: `create index concurrently ... on shipments (status, created_at, id);`
-   Partial index for hot subsets: `... where status = 'in_transit'`.
+   keyset: `create index concurrently ... on books (status, created_at, id);`
+   Partial index for hot subsets: `... where status = 'in_review'`.
    `ILIKE '%x%'` → `create index ... using gin (name gin_trgm_ops);` (pg_trgm is installed).
 4. Re-run EXPLAIN; quote before/after timings when explaining the tradeoff (write cost, size).
    Measure at realistic volume: generate rows with `insert ... select ... from generate_series(1, 200000)`.

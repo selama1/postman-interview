@@ -82,7 +82,7 @@ if (check('test mode: POST /_test/sessions -> 201', ts.status === 201 && !!ts.js
 }
 
 // ---- feature journeys go here --------------------------------------------------------------
-// e.g. create a shipment -> list it with a filter -> page through -> fetch a report -> 404 path
+// e.g. create a book -> list it with a filter -> page through -> fetch a report -> 404 path
 
 // ---- report ---------------------------------------------------------------------------------
 const failed = results.filter((r) => r.status === 'FAIL');

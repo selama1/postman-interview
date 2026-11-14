@@ -9,7 +9,7 @@ Two minutes here saves fixing the wrong thing. Output a one-line verdict per iss
 touching code.
 
 ## 0. Split and reproduce
-- **Split welded reports.** "Search is slow and returns the wrong customers" is two issues.
+- **Split welded reports.** "Search is slow and returns the wrong authors" is two issues.
   Triage each separately.
 - **Reproduce at the reporter's call path** (same request, headers, actor; skill `repro-test`).
   Keep the `x-request-id`. If it doesn't reproduce, the verdict is "needs re-diagnosis": ask
@@ -34,7 +34,7 @@ schema and error responses alone, would a careful client have done it right?"
    - responses name the branch taken (`created` vs `already_existed`, `skipped: [{row, reason}]`).
 2. **Error** (§4):
    - a stable `code`;
-   - `detail` with the exact state ("customer 42 has no shipments in 2026-Q3", not "not found");
+   - `detail` with the exact state ("author 42 has no books in 2026-Q3", not "not found");
    - `fix` quoting the request to make instead.
    
    Silent outcomes (empty 200, `null`, silently dropped rows) become explicit.

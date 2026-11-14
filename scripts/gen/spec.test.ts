@@ -2,24 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { parseFields, parseTableName, singular, snake, splitTop, SpecError } from './spec.js';
 
 const EXAMPLE =
-  'trackingCode:text:unique, status:enum(pending|in_transit|delivered|lost), weightKg:numeric(10,2), declaredValue:int?:min0, customerId:ref(customers), shippedAt:timestamptz?';
+  'isbn:text:unique, status:enum(draft|in_review|published|out_of_print), priceUsd:numeric(10,2), pageCount:int?:min0, authorId:ref(authors), publishedAt:timestamptz?';
 
 describe('gen:resource field spec parser', () => {
   it('parses the documented example: types, nullability, modifiers, snake_case columns', () => {
     const f = parseFields(EXAMPLE);
     expect(f.map((x) => [x.name, x.column, x.kind, x.nullable])).toEqual([
-      ['trackingCode', 'tracking_code', 'text', false],
+      ['isbn', 'isbn', 'text', false],
       ['status', 'status', 'enum', false],
-      ['weightKg', 'weight_kg', 'numeric', false],
-      ['declaredValue', 'declared_value', 'int', true],
-      ['customerId', 'customer_id', 'ref', false],
-      ['shippedAt', 'shipped_at', 'timestamptz', true],
+      ['priceUsd', 'price_usd', 'numeric', false],
+      ['pageCount', 'page_count', 'int', true],
+      ['authorId', 'author_id', 'ref', false],
+      ['publishedAt', 'published_at', 'timestamptz', true],
     ]);
     expect(f[0]).toMatchObject({ unique: true, max: 200 });
-    expect(f[1]!.values).toEqual(['pending', 'in_transit', 'delivered', 'lost']);
+    expect(f[1]!.values).toEqual(['draft', 'in_review', 'published', 'out_of_print']);
     expect(f[2]).toMatchObject({ precision: 10, scale: 2 });
     expect(f[3]).toMatchObject({ min0: true, positive: false });
-    expect(f[4]!.refTable).toBe('customers');
+    expect(f[4]!.refTable).toBe('authors');
   });
 
   it('does not split on the comma inside numeric(p,s), and tolerates spaces', () => {
@@ -34,7 +34,7 @@ describe('gen:resource field spec parser', () => {
 
   describe('every bad spec throws a SpecError naming the token, the valid options and an example', () => {
     const cases: Array<[spec: string, token: string, why: RegExp]> = [
-      ['weight:float', 'weight:float', /unknown type "float"/],
+      ['price:float', 'price:float', /unknown type "float"/],
       ['a:text:wibble', 'a:text:wibble', /unknown modifier "wibble"/],
       ['a:int:max=5', 'a:int:max=5', /text only/],
       ['a:text:min0', 'a:text:min0', /int, bigint and numeric only/],
@@ -47,9 +47,9 @@ describe('gen:resource field spec parser', () => {
       ['a:numeric(4,4)', 'a:numeric(4,4)', /scale < precision|scale must|scale < p/],
       ['id:int', 'id:int', /reserved/],
       ['createdAt:date', 'createdAt:date', /reserved/],
-      ['Weight_Kg:int', 'Weight_Kg:int', /camelCase/],
-      ['customer:ref(customers)', 'customer:ref(customers)', /end in Id/],
-      ['customerId:ref(Customers)', 'customerId:ref(Customers)', /snake_case table/],
+      ['Price_Usd:int', 'Price_Usd:int', /camelCase/],
+      ['author:ref(authors)', 'author:ref(authors)', /end in Id/],
+      ['authorId:ref(Authors)', 'authorId:ref(Authors)', /snake_case table/],
       ['onlyname', 'onlyname', /expected name:type/],
     ];
     it.each(cases)('%s', (spec, token, why) => {
@@ -80,12 +80,12 @@ describe('gen:resource field spec parser', () => {
   });
 
   it('validates the table name', () => {
-    expect(parseTableName('shipment_items')).toBe('shipment_items');
-    for (const bad of [undefined, '', 'Shipments', '1x', 'a-b']) expect(() => parseTableName(bad)).toThrow(/PLURAL snake_case/);
+    expect(parseTableName('book_items')).toBe('book_items');
+    for (const bad of [undefined, '', 'Books', '1x', 'a-b']) expect(() => parseTableName(bad)).toThrow(/PLURAL snake_case/);
   });
 
   it('naming helpers', () => {
-    expect(snake('weightKgNet')).toBe('weight_kg_net');
-    expect(['customers', 'categories', 'boxes', 'statuses', 'address'].map(singular)).toEqual(['customer', 'category', 'box', 'status', 'address']);
+    expect(snake('priceUsdNet')).toBe('price_usd_net');
+    expect(['authors', 'categories', 'boxes', 'statuses', 'address'].map(singular)).toEqual(['author', 'category', 'box', 'status', 'address']);
   });
 });

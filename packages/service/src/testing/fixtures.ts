@@ -11,9 +11,9 @@ import type { FixtureRegistry } from '../db/template.js';
  *
  *   export const fixtures: FixtureRegistry = {
  *     small_fleet: {
- *       description: '3 ships, 10 customers, 50 shipments in mixed states',
+ *       description: '3 publishers, 10 authors, 50 books in mixed states',
  *       seed: async (db) => {
- *         await sql`insert into ships (...) values (...)`.execute(db);
+ *         await sql`insert into publishers (...) values (...)`.execute(db);
  *       },
  *     },
  *   };

@@ -45,7 +45,7 @@ yourself: a grep hit is a lead, not a finding.
 - List endpoints cap `limit` (`MAX_LIMIT`). No endpoint returns an unbounded result set.
 
 ## 4. Authorization and data scoping (when there is more than one actor)
-- Every data route resolves the actor first and scopes **in the query** (`where customer_id =
+- Every data route resolves the actor first and scopes **in the query** (`where author_id =
   actor`), never by filtering after the fetch. Another actor's resource → **404**, not 403, so
   existence doesn't leak.
 - Test with two actors: actor B gets 404 or an empty list for each of actor A's resources, for
@@ -58,7 +58,7 @@ yourself: a grep hit is a lead, not a finding.
     SECURITY`; owners bypass RLS otherwise.
   - Policies are migrations, so they apply to every test DB and session automatically.
   - Application-level scoping is the cheaper option. Say which one you chose and why.
-- Regulator / redacted views: redaction happens in the query or the DTO, with a test asserting
+- Restricted / redacted views (e.g. an auditor role): redaction happens in the query or the DTO, with a test asserting
   that the redacted fields are absent (not just null).
 - Test mode: `/_test/*` absent when `TEST_SESSIONS_ENABLED=false`; the header refused when off;
   a blank header refused. Once keys exist, see CLAUDE.md §2d.
