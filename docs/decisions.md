@@ -11,6 +11,17 @@ them. Newest first. Format:
 - Consequences: <what this commits us to; what would make us revisit>
 ```
 
+## 2026-11-14 — UI tests, if any, run on the host; no browser in the Docker test image
+- Context: a basic UI may be requested live; automated UI tests probably won't be. A browser in
+  the `tests` image costs 400–500 MB and 2–4 minutes of build (Chromium + Debian libraries).
+- Options: host Playwright using the installed Edge/Chrome (`channel`) or a cached Playwright
+  Chromium (chosen: zero download on the dev machine) / Chromium baked into the tests image
+  (Docker-only runs, but heavy) / no browser tests, demo only (cheapest, weakest proof).
+- Decided by: user.
+- Consequences: `pnpm test:docker` covers API layers only. Revisit if the interviewers must run
+  the UI tests on their own clone with only Docker. The test stage stays Debian-based so adding
+  Chromium remains possible.
+
 ---
 
 ## 2026-11-13 — API keys, when added, are environment-scoped (live vs test); clients ship test mode
