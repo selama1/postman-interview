@@ -61,6 +61,15 @@ for (const img of ['postgres:17-alpine', 'node:24-alpine', 'node:24-bookworm-sli
   const has = docker('image', 'inspect', img, '--format', '{{.Id}}').ok;
   add(has ? 'PASS' : 'WARN', `image cached: ${img}`, '', 'pnpm warm (on good Wi-Fi) so the stack starts offline');
 }
+// Optional UI tests (skill ui-surface) drive an installed browser, so nothing is downloaded live.
+const browserPaths = {
+  win32: ['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', 'C:/Program Files/Microsoft/Edge/Application/msedge.exe', 'C:/Program Files/Google/Chrome/Application/chrome.exe'],
+  darwin: ['/Applications/Microsoft Edge.app', '/Applications/Google Chrome.app'],
+  linux: ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/microsoft-edge', '/opt/google/chrome/chrome'],
+}[process.platform] ?? [];
+const browser = browserPaths.find((p) => existsSync(p));
+add(browser ? 'PASS' : 'WARN', 'browser for optional UI tests', browser ?? 'no Edge/Chrome found',
+  'install Chrome or Edge, or set UI_BROWSER_CHANNEL=chromium and run pnpm exec playwright install chromium');
 const root = docker('info', '--format', '{{.DockerRootDir}}').out || '/var/lib/docker';
 const df = viaWsl ? run('wsl', ['-e', 'df', '-Pk', root]) : run('df', ['-Pk', root]);
 const availKb = Number(df.out.split('\n').pop()?.trim().split(/\s+/)[3]);

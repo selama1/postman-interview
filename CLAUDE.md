@@ -43,7 +43,8 @@ session helpers and a `forTest()` convenience) from its first commit, and its ow
 one test session per test against the real server.
 - **Why:** a client without test mode can only be tested against shared state or mocks. The
   isolation the server offers is worthless if the client can't reach it.
-- **How to apply:** skill `client-surface` (contract table, required test cases, Postman wiring).
+- **How to apply:** skill `client-surface` (contract table, required test cases, Postman wiring);
+  skill `ui-surface` for a web page (thin UI, `?testSession=`, container check, optional Playwright).
 
 ### 2d. API keys are environment-scoped: live vs test (design rule — not built yet)
 When auth is added, every key carries an environment in its prefix and record

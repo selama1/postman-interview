@@ -7,14 +7,17 @@
 // Why: conference/office Wi-Fi or a Docker Hub rate limit must not be able to break the live
 // session. After this, `docker compose up --no-build` and `pnpm install --offline` need no network.
 import { spawnSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
 const win = process.platform === 'win32';
 const results = [];
-const step = (name, cmd, args, fix) => {
+const step = (name, cmd, args, fix, opts = {}) => {
   process.stdout.write(`… ${name}\n`);
   // pnpm is a .cmd shim on Windows: run it through cmd.exe explicitly (no shell:true + args).
   const [c, a] = win && cmd === 'pnpm' ? ['cmd', ['/d', '/s', '/c', cmd, ...args]] : [cmd === 'node' ? process.execPath : cmd, args];
-  const r = spawnSync(c, a, { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' });
+  const r = spawnSync(c, a, { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', ...opts });
   const ok = r.status === 0;
   results.push({ name, ok, fix, out: `${r.stdout ?? ''}${r.stderr ?? ''}`.trim().split('\n').slice(-6).join('\n') });
   return ok;
@@ -39,6 +42,25 @@ step('prime the pnpm store', 'pnpm', ['install', '--frozen-lockfile', '--prefer-
   'run pnpm install and read its error');
 step('prove: pnpm install works offline', 'pnpm', ['install', '--frozen-lockfile', '--offline'],
   'something is missing from the store; run pnpm install with network, then pnpm warm again');
+
+// Packages a live UI may need (skill ui-surface: the static page and the optional host Playwright
+// test). Cached in the pnpm store only, NOT added to the repo; keep versions in sync with the skill.
+const UI_PACKAGES = { '@fastify/static': '10.1.11', '@playwright/test': '1.65.1' };
+const { packageManager } = JSON.parse(readFileSync('package.json', 'utf8'));
+const scratch = mkdtempSync(path.join(tmpdir(), 'pe-warm-ui-'));
+const throwaway = (name) => {
+  const dir = path.join(scratch, name);
+  mkdirSync(dir);
+  // packageManager pins the repo's pnpm: outside the repo corepack would pick a global version.
+  writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: `pe-warm-${name}`, private: true, packageManager, dependencies: UI_PACKAGES }));
+  return { cwd: dir };
+};
+step(`prime the pnpm store with UI packages (${Object.keys(UI_PACKAGES).join(', ')})`, 'pnpm', ['install', '--prefer-offline'],
+  'check the network / npm registry, then re-run pnpm warm', throwaway('prime'));
+step('prove: UI packages install offline', 'pnpm', ['install', '--offline'],
+  'a UI package is missing from the store; re-run pnpm warm with network', throwaway('offline'));
+rmSync(scratch, { recursive: true, force: true });
+
 step('prove: stack starts without building or pulling', 'node', dc('--profile', 'test', 'up', '-d', '--wait', '--no-build', '--pull', 'never'),
   'an image is missing locally; re-run pnpm warm with network');
 
