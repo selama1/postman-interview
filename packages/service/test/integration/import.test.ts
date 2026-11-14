@@ -311,22 +311,37 @@ describe('importFromStaging', () => {
     expect(err!.fix).toContain('delete from import_runs');
   });
 
-  it('perf: 50k staging rows import set-based in well under 10 s', async () => {
-    await setup();
+  // "Set-based" is proven by counting statements, not by wall time: a timing bound in a parallel
+  // suite measures machine load (2.8 s on a quiet host, 10.9 s with every layer in one container).
+  // The statement count is deterministic; the generous ceiling only catches a quadratic plan.
+  async function countedImport(rows: number) {
     await q(`insert into staging.imp_shipments
       select g, 'T' || g, (1 + g % 2)::text,
              case when g % 100 = 0 then 'bad' else ((g % 900) + 1)::text || '.5 kg' end,
              case when g % 250 = 0 then 'bogus' else 'Pending' end,
              '2026-01-' || lpad(((g % 28) + 1)::text, 2, '0'), '2026-02-01T00:00:00Z', (g % 7)::text
-      from generate_series(1, 50000) g`);
+      from generate_series(1, ${rows}) g`);
+    let statements = 0;
+    const counting = t.db!.db.withPlugin({
+      transformQuery: (a) => (statements++, a.node),
+      transformResult: async (a) => a.result,
+    });
     const t0 = performance.now();
-    const r = accounted(await run());
-    const ms = Math.round(performance.now() - t0);
-    console.log(`[import perf] 50000 rows -> inserted ${r.inserted}, rejected ${r.rejected} in ${ms} ms`);
-    expect(ms).toBeLessThan(10_000);
+    const report = accounted(await importFromStaging(counting, spec()));
+    return { report, statements, ms: Math.round(performance.now() - t0) };
+  }
+
+  it('perf: the import is set-based (statement count independent of row count) and 50k rows stay far from quadratic', async () => {
+    await setup();
+    const small = await countedImport(500);
+    await q(`truncate imp_shipments, staging.imp_shipments`);
+    const big = await countedImport(50_000);
+    console.log(`[import perf] 50000 rows -> inserted ${big.report.inserted}, rejected ${big.report.rejected} in ${big.ms} ms, ${big.statements} statements`);
+    expect(big.statements, 'statements must not grow with rows (row-by-row work crept in)').toBe(small.statements);
+    expect(big.ms).toBeLessThan(60_000);
     // bad weight every 100th (500) + bogus status every 250th (200) - both every 500th (100) = 600 rejected rows
-    expect(r).toMatchObject({ total: 50000, inserted: 49400, rejected: 600 });
-    expect(r.byReason.map((x) => [x.column, x.count])).toEqual([['weight_kg', 500], ['status', 200]]);
-    expect(await q(`select count(*)::int as n from import_rejects where import_id = $1`, [r.importId])).toEqual([{ n: 600 }]);
+    expect(big.report).toMatchObject({ total: 50000, inserted: 49400, rejected: 600 });
+    expect(big.report.byReason.map((x) => [x.column, x.count])).toEqual([['weight_kg', 500], ['status', 200]]);
+    expect(await q(`select count(*)::int as n from import_rejects where import_id = $1`, [big.report.importId])).toEqual([{ n: 600 }]);
   });
 });
