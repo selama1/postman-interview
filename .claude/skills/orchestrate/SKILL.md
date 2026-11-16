@@ -54,7 +54,23 @@ work parks and dies, or spawns orphan cascades.
 SQL shape and the exact test names to write; tell it to copy test/fixtures/widgets.ts patterns and
 to run `npx vitest run <its test file>` until green. You review the diff.
 
-**Review** → skill `lens-review` (parallel Sonnet lenses + your aggregation).
+**Review** → skill `lens-review` (parallel Sonnet lenses + your aggregation). In interview mode,
+only when the user asks for it.
+
+## Interview mode: delegate for wall time (CLAUDE.md "Mode" rule 8)
+The question is "does this finish sooner in parallel?", not "is this delegable?".
+- **Split a resource into parallel pieces once its contract is fixed.** You write routes and
+  repo; a Sonnet implementer writes the import cleaning-rule tests, or the second endpoint, from
+  your spec, in the same message. Writers never share files.
+- **Background, don't wait.** `pnpm test`, `pnpm test:e2e` and image rebuilds run with
+  `run_in_background: true`. Keep editing, then read `.test-reports/*.log` when notified.
+- **Don't delegate under about 2 minutes of work,** or a task whose output you'd re-read line
+  by line. Briefing plus startup plus verification costs more.
+- **What stays in main:** answering the user, decisions, the critical path, and the 1–2 checks
+  the result hinges on.
+- **Practice 01 lesson:** routes and import tests were written one after the other although they
+  were independent, and 6 full-suite runs ran in the foreground. Together that was about 10
+  minutes of the user waiting.
 
 **Debug** → delegate log scraping / EXPLAIN collection to Haiku; keep hypothesis selection.
 

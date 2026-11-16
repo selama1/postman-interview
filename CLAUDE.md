@@ -47,6 +47,23 @@ Speed is the constraint; correctness stays non-negotiable.
 7. **Short replies.** Lead with the answer. Tables over prose, no recaps of earlier turns.
    Narrate tradeoffs in one sentence each, so the user can repeat them to the interviewers.
 
+8. **Buy wall time with parallelism, never with waiting.** Wall-clock time is the critical
+   resource. Agent tokens are second, and the user's attention is the one thing never to waste.
+   - **Split independent pieces** that take more than about 3 minutes each (a resource's routes vs.
+     its import rule tests; two endpoints with a fixed contract): main keeps the critical path and
+     the judgment, and a Sonnet subagent takes the other piece from a written spec, in the same
+     message.
+   - **Don't delegate small tasks** (under about 2 minutes, or anything you would need to re-check
+     line by line). Briefing plus a 30–60 s start plus verifying costs more than doing it.
+   - **Long runs go in the background** (`pnpm test`, `pnpm test:e2e`, a rebuild,
+     `run_in_background`). Start the next independent edit while they run; read the log when
+     they finish.
+   - **Model tiers stay as in Orchestration:** Haiku for find, run and report; Sonnet for bounded
+     code or review from a spec; main for decisions and synthesis. Verify the 1–2 facts a
+     subagent's result hinges on before building on it.
+   - **Why:** practice 01 ran the routes and the import tests one after the other although they
+     were independent (about 5 min lost), and waited in the foreground on 6 full-suite runs.
+
 **Pre-interview handover.** When the user says "clean up practice", "archive practice" or "get
 ready for the interview", do all of this without further questions. It's reversible, and the
 request is the go-ahead.
