@@ -202,7 +202,10 @@ or not, gets exactly one of two outcomes:
 ## Git
 - `main` = the vanilla interview submission. **Practice code never lands on main** (the
   `pre-commit` hook blocks `practice/` paths on main). Practice lives on the `practice` branch /
-  `C:\devel\postman-interview-practice` worktree, one `practice/<nn>-<slug>` branch per attempt.
+  `C:\devel\postman-interview-practice` worktree, one `practice-<nn>-<slug>` branch per attempt.
+  (A dash, not a slash: git cannot hold `practice` and `practice/...` branches at once.) To clear
+  this machine for the interview: `node practice/tools/practice-archive.mjs archive` (in the
+  practice worktree; reversible, verified backup outside `C:\devel`).
 - `origin` = the PUBLIC GitHub repo `selama1/postman-interview` (the submission link): `main`
   only. **Practice work stays local, never pushed.** The `pre-push` hook blocks practice branches
   and any commit containing `practice/`. Never bypass it with `--no-verify`; that call is the user's.
