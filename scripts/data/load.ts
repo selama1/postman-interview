@@ -8,7 +8,8 @@
  *
  * Every column is TEXT (no guessing at load time — that's what data:profile is for), plus
  * `_row` (1-based source row number) so bad records can be reported back by line.
- * Nested JSON values are stored as JSON text. Then:
+ * Nested JSON values are stored as JSON text. JSON records need not share keys: the columns are the
+ * union of all keys (absent key = NULL). Then:
  *   pnpm data:profile staging.books   -> types, nulls, keys, anomalies
  *   write a migration that creates the real table and INSERT ... SELECT from staging with casts.
  */
@@ -53,39 +54,46 @@ async function main() {
   const client = new pg.Client({ connectionString: databaseUrl() });
   await client.connect();
   const full = `staging."${table}"`;
-  let cols: string[] | null = null;
-  let srcKeys: string[] = [];
+  // Columns are the union of every record's keys, in first-seen order. JSON records need not share
+  // keys: a key first seen in a later record adds a column, and earlier rows hold NULL for it.
+  const colOf = new Map<string, string>(); // source key -> column name
+  const used = new Set<string>(['_row']);
+  let keys: string[] = []; // source keys, in column order
   let batch: Array<Array<string | null>> = [];
   let total = 0;
   const t0 = Date.now();
 
   const flush = async () => {
-    if (!batch.length || !cols) return;
-    const width = cols.length + 1;
+    if (!batch.length) return;
+    const width = keys.length + 1;
     const values = batch.map((_, i) => `(${Array.from({ length: width }, (__, j) => `$${i * width + j + 1}`).join(',')})`).join(',');
-    await client.query(`insert into ${full} ("_row", ${cols.map((c) => `"${c}"`).join(',')}) values ${values}`, batch.flat());
+    await client.query(`insert into ${full} ("_row", ${keys.map((k) => `"${colOf.get(k)}"`).join(',')}) values ${values}`, batch.flat());
     batch = [];
+  };
+  const columnFor = (key: string) => {
+    const base = sanitizeIdent(key) || 'col';
+    let name = base;
+    for (let n = 2; used.has(name); n++) name = `${base}_${n}`;
+    used.add(name);
+    colOf.set(key, name);
+    return name;
   };
 
   try {
     await client.query('begin');
     await client.query('create schema if not exists staging');
     if (replace) await client.query(`drop table if exists ${full}`);
+    await client.query(`create table ${full} ("_row" bigint primary key)`);
     for await (const rec of records()) {
-      if (!cols) {
-        srcKeys = Object.keys(rec);
-        const seen = new Map<string, number>();
-        cols = srcKeys.map((k) => {
-          const base = sanitizeIdent(k) || 'col';
-          const n = seen.get(base) ?? 0;
-          seen.set(base, n + 1);
-          return n ? `${base}_${n + 1}` : base;
-        });
-        await client.query(`create table ${full} ("_row" bigint primary key, ${cols.map((c) => `"${c}" text`).join(', ')})`);
+      const unseen = Object.keys(rec).filter((k) => !colOf.has(k));
+      if (unseen.length) {
+        await flush(); // the pending batch was built for the old column list
+        for (const k of unseen) await client.query(`alter table ${full} add column "${columnFor(k)}" text`);
+        keys = [...colOf.keys()];
       }
       total++;
-      batch.push([String(total), ...srcKeys.map((k) => toText(rec[k]))]);
-      if (batch.length >= Math.floor(60_000 / (cols.length + 1))) await flush();
+      batch.push([String(total), ...keys.map((k) => toText(rec[k]))]);
+      if (batch.length >= Math.floor(60_000 / (keys.length + 1))) await flush();
     }
     await flush();
     await client.query('commit');
@@ -99,8 +107,9 @@ async function main() {
   } finally {
     await client.end();
   }
-  console.log(`loaded ${total} rows into ${full} (${cols?.length ?? 0} columns) in ${Date.now() - t0} ms`);
-  console.log(`columns: ${cols?.join(', ')}`);
+  const cols = [...colOf.values()];
+  console.log(`loaded ${total} rows into ${full} (${cols.length} columns) in ${Date.now() - t0} ms`);
+  console.log(`columns: ${cols.join(', ')}`);
   console.log(`next: pnpm data:profile staging.${table}`);
 }
 
