@@ -76,6 +76,14 @@ export interface ImportSpec {
    * record it in docs/decisions.md.
    */
   dateOrder?: 'MDY' | 'DMY' | 'YMD';
+  /**
+   * Rules across columns, on the cast values, referenced as `$<target column>`:
+   * `{ sql: '$delivered_at >= $shipped_at', reason: 'delivered before shipped' }`. Like a DB CHECK,
+   * a rule that is NULL (a value missing) passes; only `false` rejects. Reported under column `row`.
+   * Mirror them as CHECK constraints in the migration so the table enforces them too.
+   * SECURITY: `sql` is spliced verbatim (developer-authored, never request or file content).
+   */
+  rowChecks?: Array<{ sql: string; reason: string }>;
 }
 
 export interface ReasonSummary {

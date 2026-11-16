@@ -42,6 +42,8 @@ export interface ImportPlan {
   columns: PlannedColumn[];
   /** Natural key, as planned columns (same order as `spec.key`). Empty = no duplicate detection. */
   key: PlannedColumn[];
+  /** Cross-column rules, `$<target>` already resolved to work-table columns `w."v<i>"`. */
+  rowChecks: Array<{ expr: string; reason: string }>;
 }
 
 const IDENT = /^[A-Za-z_][A-Za-z0-9_]{0,62}$/;
@@ -188,6 +190,17 @@ export async function planImport(db: Executor, spec: ImportSpec): Promise<Import
   if (onDuplicate === 'update' && key.length > 0 && entries.every(([c]) => key.includes(c))) {
     bad(`onDuplicate 'update' has nothing to update: every mapped column is in the key`, `map at least one non-key column or use 'skip'`);
   }
+  const mapped = Object.keys(spec.columns ?? {});
+  for (const [n, rc] of (spec.rowChecks ?? []).entries()) {
+    const refs = typeof rc?.sql === 'string' ? [...rc.sql.matchAll(/\$([A-Za-z_][A-Za-z0-9_]*)/g)].map((m) => m[1]!) : [];
+    if (!refs.length || !rc.reason) {
+      bad(`rowChecks[${n}] needs { sql, reason } and sql must reference mapped columns as $<column>`, `e.g. rowChecks: [{ sql: '$delivered_at >= $shipped_at', reason: 'delivered before shipped' }]`);
+      continue;
+    }
+    for (const r of refs.filter((r) => !mapped.includes(r))) {
+      bad(`rowChecks[${n}] references $${r}, which is not a mapped column`, `use one of: ${list(mapped)}`);
+    }
+  }
   if (problems.length) throwProblems(problems);
 
   // ---- catalog checks (read-only) ---------------------------------------------------------
@@ -250,6 +263,10 @@ export async function planImport(db: Executor, spec: ImportSpec): Promise<Import
     dateOrder,
     columns,
     key: key.map((k) => columns.find((c) => c.target === k)!),
+    rowChecks: (spec.rowChecks ?? []).map((rc) => ({
+      reason: rc.reason,
+      expr: rc.sql.replace(/\$([A-Za-z_][A-Za-z0-9_]*)/g, (_, name: string) => `w."v${columns.find((c) => c.target === name)!.index}"`),
+    })),
   };
 }
 

@@ -122,6 +122,10 @@ function reasonsSql(plan: ImportPlan, W: RawBuilder<unknown>, RS: RawBuilder<unk
       add(at(5), target, `no matching ${ref.table}.${ref.column}`, sql`${sql.lit(`${target}: no ${ref.table}.${ref.column} = `)} || ${b}`, sql`${v} is not null and not exists (select 1 from ${id(ref.table)} r where r.${sql.id(ref.column)} = ${v})`);
     }
   }
+  // Cross-column rules: CHECK semantics, so NULL passes and only false rejects. Ordered after all column rules.
+  for (const [n, rc] of plan.rowChecks.entries()) {
+    add(100_000 + n, 'row', rc.reason, sql`${sql.lit(`row: ${rc.reason}`)}`, sql`(${sql.raw(rc.expr)}) is false`);
+  }
   return sql`create temp table ${RS} on commit drop as ${sql.join(parts, sql` union all `)}`;
 }
 

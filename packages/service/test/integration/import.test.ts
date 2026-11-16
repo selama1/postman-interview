@@ -222,6 +222,22 @@ describe('importFromStaging', () => {
     });
   });
 
+  it('rowChecks: a cross-column rule rejects rows where it is false, with CHECK semantics (NULL passes)', async () => {
+    await setup([
+      good(1), // reviewed 2026-01-03 after published 2026-01-02: ok
+      good(2, { published: '2026-02-01' }), // reviewed before published: rejected
+      good(3, { published: null }), // rule is NULL: passes, like a DB CHECK
+      good(4, { published: '2026-02-01', price: '-5' }), // two reasons: column rule + row rule
+    ]);
+    const r = accounted(await run({ rowChecks: [{ sql: '$reviewed_at >= $published_on', reason: 'reviewed before published' }] }));
+    expect(r).toMatchObject({ total: 4, inserted: 2, rejected: 2 });
+    expect(r.byReason).toContainEqual({ column: 'row', reason: 'reviewed before published', count: 2, sampleRows: [2, 4] });
+    expect((await rejects(r.importId)).map((x) => [x.source_row, x.reasons])).toEqual([
+      [2, ['row: reviewed before published']],
+      [4, ['price_usd: must be positive (got "-5")', 'row: reviewed before published']],
+    ]);
+  });
+
   describe('spec errors throw before touching data, naming the bad name, what exists and the fix', () => {
     const expectSpecError = async (over: Partial<ImportSpec>, columns: Record<string, ColumnRule>, ...fragments: string[]) => {
       const err = await run(over, columns).then(
@@ -234,6 +250,11 @@ describe('importFromStaging', () => {
       expect((err as ImportError).fix.length).toBeGreaterThan(0);
       expect(await q(`select (select count(*)::int from imp_books) as s, (select count(*)::int from import_runs) as r, (select count(*)::int from import_rejects) as j`)).toEqual([{ s: 0, r: 0, j: 0 }]);
     };
+
+    it('rowChecks naming an unmapped column lists the mapped ones', async () => {
+      await setup([good(1)]);
+      await expectSpecError({ rowChecks: [{ sql: '$reviewed_at >= $printed_on', reason: 'reviewed before printed' }] }, {}, '$printed_on', 'not a mapped column', 'published_on');
+    });
 
     it('unknown staging column lists the staging columns', async () => {
       await setup([good(1)]);
