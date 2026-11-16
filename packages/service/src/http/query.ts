@@ -12,8 +12,16 @@ export function parseSort(
   allowed: Record<string, string>,
   fallback: string,
 ): Array<{ field: string; col: string; dir: 'asc' | 'desc' }> {
-  const spec = (raw ?? fallback).split(',').map((s) => s.trim()).filter(Boolean);
+  const parts = (raw ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  // `?sort=` (blank) means "no preference" -> the default, never "no ORDER BY keys".
+  const spec = parts.length ? parts : fallback.split(',').map((s) => s.trim()).filter(Boolean);
+  const seen = new Set<string>();
   return spec.map((s) => {
+    const name = s.replace(/^[-+]/, '');
+    if (seen.has(name)) {
+      throw badRequest('INVALID_SORT', `"${name}" appears more than once in sort`, `List each field once, e.g. sort=-${name}.`);
+    }
+    seen.add(name);
     const dir = s.startsWith('-') ? ('desc' as const) : ('asc' as const);
     const field = s.replace(/^[-+]/, '');
     const col = allowed[field];
