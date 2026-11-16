@@ -16,6 +16,8 @@ alone doesn't prevent. Process rules live in CLAUDE.md; procedures in .claude/sk
     pnpm test                    # typecheck + unit + integration (live DB, fresh DB per test)
     pnpm test:e2e                # rebuild image, run journey + e2e suite against the stack
     pnpm test:docker             # every layer inside the `tests` container: only Docker needed
+    pnpm data:recon <dir|files>  # FIRST step for raw data: loads all files to staging + one summary of what affects an import
+    pnpm data:load <file>        # one raw file -> staging.<name> (lossless, all TEXT);  pnpm data:profile staging.<name> = per-column detail
 
 Interviewers (no pnpm needed): `docker compose up --build`, then
 `curl http://localhost:3480/health/db` (fresh machine: `sh scripts/smoke.sh`). Full test suite
@@ -108,6 +110,10 @@ Every route must be listed here (`pnpm docs:check` enforces it).
 - Multi-statement invariants: `withTransaction(db, fn, { isolation })`. Read-check-write races:
   `SELECT ... FOR UPDATE`, a constraint + ON CONFLICT, or serializable + `retryOnSerializationFailure`.
 - Repos/helpers take an `Executor` (db or trx) so they compose inside transactions.
+- Start every dataset with `pnpm data:recon data/raw`: it loads each file (scripts/data/loader.ts, shared with
+  data:load) and prints blanks/placeholders, mixed value shapes, slash-date order evidence, case/space
+  variants, duplicate keys (identical vs conflicting), likely references with orphans, and the decisions
+  you will need (also in data/out/recon.md). Heuristics only; it never guesses a date order.
 - Raw data imports go to the `staging` schema (scripts/data/load.ts). A migration creates the real
   table, and `pnpm data:import <spec.ts>` (src/db/import.ts `importFromStaging`) fills it set-based.
   Every bad row goes to `import_rejects` (source_row, ALL reasons, raw jsonb); `import_runs` holds
