@@ -5,6 +5,13 @@ description: Load an unfamiliar dataset (CSV/TSV/JSON/NDJSON) losslessly into th
 
 # Data recon: facts before schema
 
+## 0. One command first
+`pnpm data:recon data/raw` loads every file losslessly and prints one summary, also saved to
+`data/out/recon.md`. It covers mixed shapes, a proven or ambiguous slash-date order, case
+variants, duplicate keys (identical vs conflicting), likely references with orphan counts, and
+names used instead of codes. In interview mode, answer from this summary and stop. Steps 1–2 are
+for depth on request.
+
 ## 1. Load raw (lossless)
 ```
 pnpm db:up                                   # dev DB
@@ -29,6 +36,11 @@ Read in this order:
 Per anomaly class choose: **reject** (exclude + report by `_row`), **coerce** (trim/lower/parse
 with a documented rule), or **keep raw** (nullable). Units/currency normalisation. Timezone of
 naive timestamps. Record in `docs/decisions.md`.
+- **Mixed precision:** a date-only value (`6/18/3025`) is not midnight. Any comparison with a
+  full timestamp must allow the same day: compare `::date` when either side was date-only, or
+  keep a precision flag. Practice 01: all 83 "shipped before booked" rejects were this artifact.
+- **Implausible counts:** before reporting a reject category over a few dozen rows, check it
+  isn't produced by our own conversion (CLAUDE.md "Mode" rule 6).
 
 ## 4. Shape it: migration for the schema, `importFromStaging` for the data
 Migration = the real table with constraints (`pnpm gen:resource` writes it in the house shape).

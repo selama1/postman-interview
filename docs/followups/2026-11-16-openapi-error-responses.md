@@ -1,4 +1,10 @@
-# OpenAPI documents only the 200 response of each route
+---
+title: OpenAPI documents only the 200 response of each route
+severity: dx
+size: medium
+area: src/http (errors, query, pagination)
+found_by: practice 01: lens review (api-contract)
+---
 
 - **Evidence:** routes declare `response: { 200: ... }` only, so `/openapi.json` shows no 400/404
   problem+json bodies, though every route returns them (`code`, `detail`, `fix`, `requestId`).

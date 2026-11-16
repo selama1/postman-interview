@@ -14,8 +14,11 @@ operations each actor needs, explicit constraints, and **what is ambiguous**. As
 questions whose answers change the design; offer a default for each so the session doesn't stall.
 
 ## 2. Recon the data (parallel)
-If data was provided: put files in `data/raw/`, then run skill `data-recon` (load → profile).
-Fan out per file if several (Haiku runs load+profile, returns the markdown; you read the flags).
+If data was provided: put files in `data/raw/`, then run `pnpm data:recon data/raw` once. It
+loads every file and prints one summary: anomalies, duplicates, references and orphans, and the
+decisions they raise. Answer from that summary (interview mode, CLAUDE.md "Mode"). Go deeper with
+skill `data-recon` (per-table `data:profile`, SQL probes) only when asked or when a finding is
+unclear.
 If an API/schema description was provided instead, list entities/fields/relationships from it.
 
 ## 3. Decisions to confirm (the important part)
@@ -31,11 +34,13 @@ recommendation + one-line tradeoff. Typical ones:
   Only the actor/role axis is a decision to ask about.
 - immutability/audit for regulator-facing data
 Ask them in one compact message. Record answers in `docs/decisions.md` as the user's.
+In interview mode, state the default for each and proceed. Ask only where no default is defensible.
 
 ## 4. Phased plan with verification
 ```
 Phase A (now): <smallest end-to-end slice: one migration, one resource, list+get, e2e journey>
-  Verify: repro tests red->green (names), pnpm test, pnpm test:e2e
+  Verify: repro tests red->green (names); while iterating only the affected test file;
+          pnpm test + pnpm test:e2e once, when the phase is done
 Phase B: <next slice>
 Phase C: <stretch> — or queue in docs/followups/
 ```

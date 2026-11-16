@@ -1,4 +1,10 @@
-# Keyset cursors truncate timestamps to milliseconds
+---
+title: Keyset cursors truncate timestamps to milliseconds
+severity: correctness
+size: small
+area: src/http/pagination.ts
+found_by: practice 01: lens review (sql-perf, correctness)
+---
 
 - **Evidence:** `packages/service/src/http/pagination.ts` `encodeCursor` stores a Date with
   `toISOString()`, and `pg` parses `timestamptz` into a JS Date (ms precision). A row whose sort

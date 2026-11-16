@@ -9,6 +9,57 @@ Rules use the same format: rule → **Why** (the incident) → **How to apply**.
 
 ---
 
+## Mode: interview (the default) or prep
+
+**Interview mode is the default in this repo**, including the practice worktree. **Prep mode**
+(harness and tooling work, like building this scaffold) applies only when the user says so: "prep
+mode", "we're preparing", "harness work". It ends when they say "interview mode", "I'm in the
+interview", "practice", or start a practice problem. If unsure, it's interview mode. The session
+brief prints the mode. In prep mode, everything below this section applies as written.
+
+**Why:** (2026-11-16, practice 01) about a third of a 50-minute session produced what an
+interviewer would see. The rest was full-suite reruns, a five-lens review, tooling fixes and
+deep probes nobody asked for, while the user waited. A real session is about 45 minutes with
+follow-up questions, and the user's own auditing is worth more than the agent's thoroughness.
+Speed is the constraint; correctness stays non-negotiable.
+
+**Rules in interview mode** (they narrow, never replace, the principles below):
+1. **Quick answer first, then offer more.** Answer in 1–3 minutes from what one pass shows, as
+   a table, then offer the deeper probe ("want me to check X?"). For data: run `pnpm data:recon
+   data/raw` once and answer from its summary. Don't run follow-up probes unasked.
+2. **Tight test loop.** While iterating, run only the affected test file (`npx vitest run <file>`,
+   or `pnpm test:changed`). Run `pnpm test` plus `pnpm test:e2e` **once per deliverable**, at the point
+   you'd say "done", not after each step. §3 still holds: no "done" without them.
+3. **Fix-or-queue (§11) with a stricter bar.** Fix only what blocks the current answer. Say
+   everything else in one line ("found X, queued") and queue it in `docs/followups/`.
+   - **In practice:** a tool or harness bug that would matter in the real interview IS fixed (on
+     `main`, then merged into practice), but its time is **deducted from the practice timer**.
+     Say "pausing the clock: fixing <tool>" before and "clock resumes" after.
+4. **No multi-agent review unless asked.** At most a one-line self-check of the riskiest point
+   before saying done. Run `lens-review` only on request.
+5. **Fewer blocking questions.** For a decision with a sound default, state it in one line ("I'm
+   rejecting orphans; say if you'd rather keep them") and proceed. Ask (§6) only when no default
+   is defensible, or the choice is costly to reverse. Batch any open questions into one ask.
+6. **Sanity-check implausible numbers before reporting them.** Ask "is this the data or our
+   conversion?" when a reject or anomaly category exceeds a few dozen rows.
+   - **Why:** in practice 01, all 83 "shipped before booked" rejects were artifacts: date-only
+     values read as midnight. Five reviewers and the row accounting missed it.
+7. **Short replies.** Lead with the answer. Tables over prose, no recaps of earlier turns.
+   Narrate tradeoffs in one sentence each, so the user can repeat them to the interviewers.
+
+**Pre-interview handover.** When the user says "clean up practice", "archive practice" or "get
+ready for the interview", do all of this without further questions. It's reversible, and the
+request is the go-ahead.
+1. `node practice/tools/practice-archive.mjs status`, then `archive` (add `--commit-wip` if a
+   worktree is dirty). It must end with `CLEAN`. Tell the user where the backup is.
+2. Back on `main` in `C:\devel\postman-interview`: `git status` clean, in sync with `origin/main`,
+   `pnpm stack:up`, then `pnpm preflight` → GO.
+3. Remind them of the one thing the archive can't do: archive the practice sessions in the Claude
+   app sidebar.
+4. Confirm in one line: "Interview mode on, practice archived at <path>, preflight GO."
+
+---
+
 ## Operating principles
 
 ### 1. Repro first, at the user's call path

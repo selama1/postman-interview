@@ -18,7 +18,7 @@ description: Choose and run the right test layer (unit, live integration, e2e), 
 |---|---|
 | inner loop while editing | `pnpm test:changed` (import graph + scripts/test-map.tsv; unmapped → ALL) |
 | one file / one test | `npx vitest run <path> -t "<name>"` |
-| before committing (the gate) | `pnpm test` (typecheck + unit + integration) |
+| before committing (the gate) | `pnpm test` (typecheck + unit + integration). Interview mode: once per deliverable, not per step |
 | anything user-visible / container / migrations | `pnpm test:e2e` |
 | long run, or a red run to triage | `pnpm test:report` (logs to .test-reports/, baseline diff) |
 

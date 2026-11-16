@@ -1,4 +1,10 @@
-# data:load silently drops extra CSV fields
+---
+title: data:load silently drops extra CSV fields
+severity: correctness
+size: small
+area: scripts/data/load.ts
+found_by: practice 01: fixing the JSON key-union bug
+---
 
 - **Evidence:** `scripts/data/load.ts` parses CSV with `columns: true, relax_column_count: true`.
   A row with more fields than the header loses the extras without a word, which breaks the loader's
