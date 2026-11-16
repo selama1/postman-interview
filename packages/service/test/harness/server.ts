@@ -144,7 +144,7 @@ export async function openTestSession(baseUrl: string, fixture?: string) {
     throw new Error(
       `Could not create a test session on ${baseUrl} (HTTP ${res.status}: ${JSON.stringify(res.body)}).
 ` +
-        'Fix: the stack must run with TEST_SESSIONS_ENABLED=true (the compose default), then `pnpm up`.',
+        'Fix: the stack must run with TEST_SESSIONS_ENABLED=true (the compose default), then `pnpm stack:up`.',
     );
   }
   const id = res.body.id;

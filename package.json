@@ -19,7 +19,7 @@
     "test:changed": "node scripts/select-tests.mjs",
     "test:report": "node scripts/test-report.mjs",
     "dc": "node scripts/dc.mjs",
-    "up": "node scripts/dc.mjs up -d --build --wait",
+    "stack:up": "node scripts/dc.mjs up -d --build --wait",
     "down": "node scripts/dc.mjs down",
     "logs": "node scripts/dc.mjs logs -f --tail=200 api",
     "db:up": "node scripts/dc.mjs up -d --wait db",

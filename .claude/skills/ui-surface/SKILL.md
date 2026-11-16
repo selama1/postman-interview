@@ -93,7 +93,7 @@ image. The browser is the installed Edge or Chrome, so nothing is downloaded.
     }
   });
   ```
-- Script: `"test:ui": "playwright test"` against the running stack (`pnpm up` first). Keep it out
+- Script: `"test:ui": "playwright test"` against the running stack (`pnpm stack:up` first). Keep it out
   of `pnpm test` and out of the tests container. Locators: `getByRole` / `getByText`, not CSS
   classes (a CSS class can match two elements and Playwright refuses, in strict mode).
 - Verified 2026-11-14: Playwright 1.65.1 + `channel: 'msedge'` headless against this stack, 2.3 s,

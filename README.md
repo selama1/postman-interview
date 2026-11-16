@@ -148,7 +148,7 @@ and pnpm (`corepack enable`). The `tests` container above runs the same suites w
 ```bash
 pnpm install
 cp .env.example .env
-pnpm up                 # compose stack (build + wait for healthy)
+pnpm stack:up           # compose stack (build + wait for healthy)
 pnpm db:test:up         # throwaway Postgres for the integration tests (host port 55432)
 pnpm test               # typecheck + unit + integration
 pnpm test:e2e           # rebuild + journey + e2e suite against the stack

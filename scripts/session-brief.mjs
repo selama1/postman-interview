@@ -34,7 +34,7 @@ try {
   const body = await res.json();
   lines.push(`  stack: api ${res.status === 200 ? 'UP' : `HTTP ${res.status}`}${body?.migrations ? ` · migrations ${body.migrations.executed} applied, ${body.migrations.pending.length} pending` : ''}`);
 } catch {
-  lines.push(`  stack: api not reachable at ${process.env.E2E_BASE_URL ?? 'http://localhost:3480'}`+'  (start with `pnpm up`; tests need `pnpm db:test:up`)');
+  lines.push(`  stack: api not reachable at ${process.env.E2E_BASE_URL ?? 'http://localhost:3480'}`+'  (start with `pnpm stack:up`; tests need `pnpm db:test:up`)');
 }
 lines.push('  Read docs/llms.txt before coding. Skills: kickoff, feature, repro-test, run-tests, e2e, debug, db-inspect, data-recon, lens-review, orchestrate, followup, client-surface, ui-surface, triage, security-audit.');
 console.log(lines.join('\n'));

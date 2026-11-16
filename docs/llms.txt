@@ -7,7 +7,7 @@ alone doesn't prevent. Process rules live in CLAUDE.md; procedures in .claude/sk
 ## 1. Quick start (paste-and-run)
 
     pnpm install
-    pnpm up                      # docker compose up -d --build --wait  (db + api, migrations run on start)
+    pnpm stack:up                # docker compose up -d --build --wait  (db + api, migrations run on start)
     pnpm verify                  # proves service <-> Postgres: GET /health/db
     pnpm smoke                   # fresh-machine smoke test, Docker + curl only, diagnoses failures
     pnpm preflight [--quick]     # go/no-go for the live session (repo, toolchain, docker, stack, smoke, tests)
@@ -191,8 +191,8 @@ Every route must be listed here (`pnpm docs:check` enforces it).
 8. Fastify serializes with the response schema: a field missing from the zod output schema is a
    500 RESPONSE_SCHEMA_MISMATCH, and extra fields are stripped. Update schemas with the DTO.
 9. New migration -> the test template rebuilds automatically (content fingerprint); the running
-   container needs `pnpm up` (rebuild) to apply it.
-10. On Windows: docker runs in WSL (`pnpm dc ...`); if containers vanish, WSL idled — `pnpm up`.
+   container needs `pnpm stack:up` (rebuild) to apply it.
+10. On Windows: docker runs in WSL (`pnpm dc ...`); if containers vanish, WSL idled — `pnpm stack:up`.
 
 11. Test-only tables (created inside a test's fresh DB) must not use names a real resource could
     take: prefix them (`imp_books`, `leak_probe`). Fresh DBs are cloned from the migrated

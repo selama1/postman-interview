@@ -23,7 +23,7 @@ If it only reproduces on the stack: `curl -i` it, keep the `x-request-id` from t
 ## 2. Gather evidence (delegate scraping to a Haiku `scout` when it's bulky)
 - Request trace: every log line for one request shares `reqId`:
   `pnpm dc logs api --since 10m | grep <x-request-id>`
-- SQL: `LOG_SQL=true LOG_LEVEL=debug` (compose: `LOG_SQL=true LOG_LEVEL=debug pnpm up`);
+- SQL: `LOG_SQL=true LOG_LEVEL=debug` (compose: `LOG_SQL=true LOG_LEVEL=debug pnpm stack:up`);
   in tests `TEST_LOG_LEVEL=debug TEST_LOG_SQL=true`. Slow queries are always logged at warn.
 - Error body: problem+json `code` tells you the layer — VALIDATION_FAILED (zod), CONFLICT/
   REFERENCE_VIOLATION (constraint), RESPONSE_SCHEMA_MISMATCH (handler returned wrong shape),
@@ -56,7 +56,7 @@ Commit body: symptom → cause → fix → tests. Non-obvious environment gotcha
 | symptom | check | usual fix |
 |---|---|---|
 | `api` restarting | `pnpm dc logs api` | ConfigError (message lists var + fix) / migration failed |
-| `db` missing/exited | `pnpm dc ps -a` | WSL idled out → `pnpm up`; host port taken → `DB_PORT=<free> pnpm up` (or `API_PORT=`); `sh scripts/smoke.sh` diagnoses it |
+| `db` missing/exited | `pnpm dc ps -a` | WSL idled out → `pnpm stack:up`; host port taken → `DB_PORT=<free> pnpm stack:up` (or `API_PORT=`); `sh scripts/smoke.sh` diagnoses it |
 | health/db 503 | response `detail` | DB down or DATABASE_URL wrong |
 | ECONNRESET from Windows | `pnpm dc ps` | container restarting; wait for healthy (`--wait`) |
 | tests: "test database unreachable" | — | `pnpm db:test:up` |

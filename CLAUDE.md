@@ -223,7 +223,7 @@ or not, gets exactly one of two outcomes:
 - **WSL idles out** when no Windows-side wsl process is alive, stopping dockerd → containers stop.
   (2026-11-13: `db` vanished mid-session; `api` restarted, `db` didn't.) Fixed with
   `restart: unless-stopped` on all services, and `scripts/dc.mjs` now starts a detached keep-alive
-  (`pe-keepalive`) on any up/start through WSL, so `pnpm up` covers it. `pnpm preflight` checks it.
+  (`pe-keepalive`) on any up/start through WSL, so `pnpm stack:up` covers it. `pnpm preflight` checks it.
 - **Before the live session:** `pnpm warm` (once, on good Wi-Fi: images and pnpm store local,
   the stack starts offline), then `pnpm preflight` that morning (go/no-go with fixes).
 - **PowerShell 5.1 file writes corrupt UTF-8** (`Set-Content` = ANSI; em dash → `â€”`). Write files

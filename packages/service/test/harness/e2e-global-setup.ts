@@ -18,5 +18,5 @@ export default async function setup() {
     }
     await new Promise((r) => setTimeout(r, 500));
   }
-  throw new Error(`E2E target ${url} is not healthy (${detail}).\nFix: pnpm up   (docker compose up -d --build --wait), then retry.`);
+  throw new Error(`E2E target ${url} is not healthy (${detail}).\nFix: pnpm stack:up   (docker compose up -d --build --wait), then retry.`);
 }

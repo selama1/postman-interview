@@ -55,7 +55,7 @@ add(info.ok ? 'PASS' : 'FAIL', 'Docker daemon reachable', info.ok ? `server ${in
   viaWsl ? 'wsl -e sudo service docker start (or open the WSL distro once)' : 'start Docker (sudo systemctl start docker / Docker Desktop)');
 if (viaWsl) {
   const ka = run('wsl', ['-e', 'pgrep', '-f', 'pe-keepalive']).ok;
-  add(ka ? 'PASS' : 'WARN', 'WSL keep-alive running', '', 'it starts with pnpm up; without it WSL idles out and stops the containers');
+  add(ka ? 'PASS' : 'WARN', 'WSL keep-alive running', '', 'it starts with pnpm stack:up; without it WSL idles out and stops the containers');
 }
 for (const img of ['postgres:17-alpine', 'node:24-alpine', 'node:24-bookworm-slim']) {
   const has = docker('image', 'inspect', img, '--format', '{{.Id}}').ok;
