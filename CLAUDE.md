@@ -58,9 +58,14 @@ Speed is the constraint; correctness stays non-negotiable.
    - **Long runs go in the background** (`pnpm test`, `pnpm test:e2e`, a rebuild,
      `run_in_background`). Start the next independent edit while they run; read the log when
      they finish.
+   - **Delegate for cost too:** big outputs (logs, test output, profiles, wide greps) go to a
+     Haiku agent that returns a summary, instead of flowing through the main model.
    - **Model tiers stay as in Orchestration:** Haiku for find, run and report; Sonnet for bounded
      code or review from a spec; main for decisions and synthesis. Verify the 1–2 facts a
      subagent's result hinges on before building on it.
+   - **Main owns every shared resource** (git, the dev stack, migrations and staging on the dev
+     DB, `.env`) unless a prompt hands one over explicitly. One writer per file. Ownership table:
+     skill `orchestrate`.
    - **Why:** practice 01 ran the routes and the import tests one after the other although they
      were independent (about 5 min lost), and waited in the foreground on 6 full-suite runs.
 

@@ -57,6 +57,31 @@ to run `npx vitest run <its test file>` until green. You review the diff.
 **Review** → skill `lens-review` (parallel Sonnet lenses + your aggregation). In interview mode,
 only when the user asks for it.
 
+## Delegate when it saves wall time OR cost, net of overhead
+Overhead per subagent: writing the brief (1–2 min of main time), about 30–60 s to start, and
+verifying the result.
+- **Saves wall time:** independent pieces over about 3 minutes, run in parallel with main's work.
+- **Saves cost:** work that would put a lot of tokens through the main model: large logs, test
+  output, data profiles, greps across many files. A Haiku agent reads them and returns 10 lines.
+  Running it in the main agent bills Opus or Fable rates for every line read.
+- **Saves neither:** a short task, a task on the critical path (you'd wait anyway), or one whose
+  output you must re-read in full. Do it yourself.
+
+## Coordination: main owns every shared resource
+Subagents report only to main; they can't coordinate with each other, so main coordinates.
+Each subagent prompt states which resources it may touch:
+| resource | owner | subagents |
+|---|---|---|
+| git index, commits, merges, pushes | main only | never commit; leave changes in the tree (or in their worktree) |
+| the dev stack (`stack:up`, rebuild, restart, `down`) | main only | read-only calls to the API |
+| migrations, `--replace` / DROP on the dev DB or staging | main only | read-only SQL; tests use their own cloned DBs |
+| `.env`, ports, `.claude/` | main only | never |
+| test DB (`db-test`) | shared, safe | each test clones its own DB, so parallel runs are fine |
+| source files | one writer per file | name each writer's files in its prompt; overlapping writers -> serialize, or `isolation: "worktree"` |
+Exception: a subagent may own a resource main names explicitly in its prompt, e.g. "you may
+`--replace` staging tables in the practice DB". Main then stays off that resource until the
+subagent reports back.
+
 ## Interview mode: delegate for wall time (CLAUDE.md "Mode" rule 8)
 The question is "does this finish sooner in parallel?", not "is this delegable?".
 - **Split a resource into parallel pieces once its contract is fixed.** You write routes and
