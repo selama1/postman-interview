@@ -7,7 +7,7 @@
 #   api      Fastify service; runs migrations on start, then serves on host port 3480
 #   db-test  Throwaway Postgres for the integration test harness (profile `test`, port 55432,
 #            tmpfs + fsync off: fast and disposable; never holds data you care about)
-#   tests    Every test layer in a container (profile `test`), so only Docker is needed:
+#   tests    Every test layer in a container (profile `tests`; uses db-test), so only Docker is needed:
 #              docker compose --profile test run --rm --build tests
 #            Integration runs against db-test, e2e against api, over the compose network.
 
@@ -101,7 +101,8 @@ services:
     restart: unless-stopped
 
   tests:
-    profiles: ["test"]
+    # Own profile: `--profile test up` (db-test for host runs) must never start a suite run.
+    profiles: ["tests"]
     build:
       context: .
       dockerfile: Dockerfile

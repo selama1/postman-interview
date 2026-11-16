@@ -39,8 +39,8 @@ When a check fails, the script prints *what happened*, the *likely cause* and *h
 with the relevant command output or container log lines. Run it on Windows from Git Bash with
 Docker Desktop, or inside WSL if Docker runs there.
 
-**Full test suite, still only Docker.** Every test layer runs in a third container (profile
-`test`): typecheck, unit, integration against a throwaway Postgres (a fresh empty database per
+**Full test suite, still only Docker.** Every test layer runs in a third container (`tests`,
+which only runs when asked): typecheck, unit, integration against a throwaway Postgres (a fresh empty database per
 test), then the e2e checks against the running service.
 
 ```bash
