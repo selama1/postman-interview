@@ -47,6 +47,9 @@ Phase C: <stretch> — or queue in docs/followups/
 Prefer a thin vertical slice that works end-to-end through the container over broad half-built
 layers. Each phase ends committed and green.
 
+In the live-coding round, steps 1–4 are written as the design doc (skill `design-doc`), in
+`docs/design/<slug>.md`, and the user steers it. No code before the user approves it.
+
 ## 5. Go
-Run skill `feature` for each slice. Use `orchestrate` to parallelize recon and bounded
-implementation once contracts are fixed.
+Run skill `feature` for each slice, and end each one with skill `slice-review`. Use
+`orchestrate` to parallelize recon and bounded implementation once contracts are fixed.

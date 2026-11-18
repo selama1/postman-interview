@@ -208,5 +208,5 @@ Every route must be listed here (`pnpm docs:check` enforces it).
     at local midnight shifts the day across time zones.
 
 ## 8. Where to look next
-- Procedures: .claude/skills/{kickoff,feature,repro-test,run-tests,e2e,debug,db-inspect,data-recon,lens-review,orchestrate,followup,client-surface,ui-surface,triage,security-audit}
+- Procedures: .claude/skills/{kickoff,design-doc,feature,slice-review,repro-test,run-tests,e2e,debug,db-inspect,data-recon,lens-review,orchestrate,followup,client-surface,ui-surface,triage,security-audit}
 - Decisions with the user: docs/decisions.md

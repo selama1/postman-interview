@@ -55,6 +55,10 @@ scenarios). Not done until this is green.
 - Commit (don't wait to be asked): `area: outcome` subject; body with tradeoffs and
   `Tests:` (files + layers run). Out-of-scope findings → skill `followup`.
 
+## 8. Hand it to the user (live session)
+End the slice with skill `slice-review`: what changed, the 2–3 lines to read first, the
+assumptions made, the proof. Then stop until the user says next.
+
 ## Done checklist (say it in the final message)
 - [ ] failing test seen red, now green (name it)
 - [ ] `pnpm test` green · [ ] `pnpm test:e2e` green

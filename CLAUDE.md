@@ -69,6 +69,15 @@ Speed is the constraint; correctness stays non-negotiable.
    - **Why:** practice 01 ran the routes and the import tests one after the other although they
      were independent (about 5 min lost), and waited in the foreground on 6 full-suite runs.
 
+9. **Doc first, then reviewable slices** (the live round's real format). The first deliverable
+   is a design doc the user steers (skill `design-doc`): the agent drafts it in about 3 minutes,
+   marks every choice Proposed, and writes **no code until the user says approved**. Then each
+   slice of about 10 minutes ends with skill `slice-review` (the lines to read, the
+   assumptions, the proof), and the agent waits for "next".
+   - **Why:** (2026-11-16, recruiter email) the interviewers first watch the user and agent
+     write the doc, then watch how the user manages and reviews the AI's output. In practice
+     02, the agent built before the design discussion, and the user never read the code.
+
 **Pre-interview handover.** When the user says "clean up practice", "archive practice" or "get
 ready for the interview", do all of this without further questions. It's reversible, and the
 request is the go-ahead.

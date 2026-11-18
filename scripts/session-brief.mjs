@@ -42,5 +42,5 @@ try {
 } catch {
   lines.push(`  stack: api not reachable at ${process.env.E2E_BASE_URL ?? 'http://localhost:3480'}`+'  (start with `pnpm stack:up`; tests need `pnpm db:test:up`)');
 }
-lines.push('  Read docs/llms.txt before coding. Skills: kickoff, feature, repro-test, run-tests, e2e, debug, db-inspect, data-recon, lens-review, orchestrate, followup, client-surface, ui-surface, triage, security-audit.');
+lines.push('  Read docs/llms.txt before coding. Skills: kickoff, design-doc, feature, slice-review, repro-test, run-tests, e2e, debug, db-inspect, data-recon, lens-review, orchestrate, followup, client-surface, ui-surface, triage, security-audit.');
 console.log(lines.join('\n'));
