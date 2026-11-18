@@ -28,7 +28,7 @@ describe('data:load (CLI) stages raw files losslessly', () => {
   };
 
   // Regression (2026-11-16): columns came from the FIRST record only, so a key that first appears
-  // later (shipment_events.ndjson `meta`, on 21,780 of 107,828 rows) was silently dropped.
+  // later (e.g. an optional `meta` object on a fifth of the rows) was silently dropped.
   it('NDJSON: a key that first appears in a later record becomes a column; earlier rows get NULL', async () => {
     const out = load('events.ndjson', [
       '{"id":1,"type":"booked"}',

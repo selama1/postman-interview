@@ -6,7 +6,7 @@ branch=$(git symbolic-ref --short HEAD 2>/dev/null)
 if [ "$branch" = "main" ] && [ -d practice ] && [ -n "$(ls -A practice 2>/dev/null)" ]; then
   echo "post-checkout WARNING: on 'main' but a practice/ directory exists in the working tree." >&2
   echo "  main must stay vanilla. These are untracked leftovers from a practice branch." >&2
-  echo "  Fix: git status practice/ ; if untracked, remove them (or keep using the practice worktree)." >&2
+  echo "  Fix: git status practice/ ; if untracked, remove them (practice work belongs in the practice clone)." >&2
 fi
 if [ -z "$branch" ]; then
   echo "post-checkout WARNING: HEAD is detached. Commits made now are easy to lose." >&2

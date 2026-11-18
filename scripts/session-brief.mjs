@@ -4,7 +4,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 
-// Honour repo-root .env (ports / E2E_BASE_URL / COMPOSE_PROJECT_NAME overrides, e.g. in a practice worktree).
+// Honour repo-root .env (ports / E2E_BASE_URL / COMPOSE_PROJECT_NAME overrides, e.g. a second clone running side by side).
 try {
   process.loadEnvFile('.env');
 } catch {
@@ -24,13 +24,8 @@ const branch = sh('git', ['branch', '--show-current']) || '(detached)';
 const dirty = (sh('git', ['status', '--porcelain']) ?? '').split('\n').filter(Boolean).length;
 lines.push(`[session-brief] branch: ${branch}${dirty ? ` · ${dirty} uncommitted change(s)` : ' · clean'}`);
 // Interview mode is the default everywhere (CLAUDE.md "Mode"); prep mode only on the user's word.
-lines.push(
-  branch.startsWith('practice')
-    ? '  MODE: interview (practice). Quick answers, one full test run per deliverable; tool fixes allowed with the clock paused. CLAUDE.md "Mode".'
-    : '  MODE: interview (default). Quick answers, tight test loop, no review unless asked. The user says "prep mode" for harness work. CLAUDE.md "Mode".',
-);
-if (branch === 'main') lines.push('  main = vanilla interview submission: no practice/ code here (pre-commit hook enforces).');
-if (branch.startsWith('practice')) lines.push('  practice branch: problems in practice/problems/, never merge into main.');
+lines.push('  MODE: interview (default). Quick answers, tight test loop, no review unless asked. The user says "prep mode" for harness work. CLAUDE.md "Mode".');
+if (branch === 'main') lines.push('  main = the interview submission; this clone holds main only (pnpm preflight checks it).');
 
 const fu = existsSync('docs/followups') ? readdirSync('docs/followups').filter((f) => /^\d{4}-\d{2}-\d{2}-.*\.md$/.test(f)) : [];
 if (fu.length) lines.push(`  follow-up queue: ${fu.length} item(s) in docs/followups/`);

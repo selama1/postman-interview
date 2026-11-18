@@ -8,8 +8,8 @@ if [ "$branch" = "main" ]; then
   if [ -n "$leaked" ]; then
     echo "pre-commit: BLOCKED — practice files staged on main:" >&2
     echo "$leaked" | sed 's/^/  /' >&2
-    echo "Reason: main is the vanilla interview submission; practice work lives on the 'practice' branch." >&2
-    echo "Fix: git restore --staged practice/  (then switch: git switch practice, or use the C:/devel/postman-interview-practice worktree)" >&2
+    echo "Reason: main is the vanilla interview submission; practice work lives on practice branches in a separate clone." >&2
+    echo "Fix: git restore --staged practice/  (then commit it on a practice branch, in the practice clone)" >&2
     exit 1
   fi
 fi

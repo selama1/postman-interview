@@ -70,8 +70,8 @@ packages/cli/   package.json (bin: pe), depends on workspace:@planet-express/sdk
    README "Testing your integration". Otherwise queue them.
 
 ## Demo script (2 minutes, at the end)
-1. `pe track SHP-0000001` → table; then `--json | jq .status`.
-2. `pe track SHP-9999999; echo $?` → the problem body with `fix`, exit 1.
+1. `pe track <a delivered shipment>` → table; then `--json | jq .status`.
+2. `pe track <an unknown id>; echo $?` → the problem body with `fix`, exit 1.
 3. `pe test-session create` → `pe --test-session <id> shipments list` → empty: isolated data.
 4. Show the drift check: change a response field name, and SDK typecheck goes red.
 

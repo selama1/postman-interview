@@ -76,9 +76,9 @@ The 2–3 things most likely to be wrong, and the test or check that would catch
 - **Says what is not being built.** Scope cuts read as judgment.
 - **States the proof** for each slice before it is built.
 
-## Anti-patterns (seen in practice)
-- Code before approval. In practice 02, building before the design discussion was the main
-  criticism.
+## Anti-patterns
+- Code before approval. Building before the design discussion is the first thing the
+  interviewers would flag.
 - A 5-page doc. The interviewers have 45 minutes; two screens at most.
 - Pre-deciding user choices silently. Every real choice shows up in the Decisions table.
 - Re-pasting the whole doc after each edit. Show the diff in one or two lines.

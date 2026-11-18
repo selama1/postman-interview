@@ -3,14 +3,13 @@ title: data:load silently drops extra CSV fields
 severity: correctness
 size: small
 area: scripts/data/load.ts
-found_by: practice 01: fixing the JSON key-union bug
+found_by: fixing the JSON key-union bug
 ---
 
 - **Evidence:** `scripts/data/load.ts` parses CSV with `columns: true, relax_column_count: true`.
   A row with more fields than the header loses the extras without a word, which breaks the loader's
   "lossless" promise. (A row with fewer fields is fine: the missing ones are NULL.)
-- **Seen in:** none so far. The 2026-11-16 practice dataset has consistent field counts, checked
-  per row. Found while fixing the JSON key-union bug.
+- **Seen in:** none so far. Found while fixing the JSON key-union bug.
 - **Fix:** keep the extras in an `_extra` text column (JSON array) and print a WARN with the
   count and sample `_row`s, so the profile surfaces it.
 - **Done when:** an integration test in `test/integration/data-load.test.ts` loads a CSV with an

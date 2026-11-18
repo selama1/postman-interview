@@ -79,7 +79,7 @@ Each subagent prompt states which resources it may touch:
 | test DB (`db-test`) | shared, safe | each test clones its own DB, so parallel runs are fine |
 | source files | one writer per file | name each writer's files in its prompt; overlapping writers -> serialize, or `isolation: "worktree"` |
 Exception: a subagent may own a resource main names explicitly in its prompt, e.g. "you may
-`--replace` staging tables in the practice DB". Main then stays off that resource until the
+`--replace` staging tables in the dev DB". Main then stays off that resource until the
 subagent reports back.
 
 ## Interview mode: delegate for wall time (CLAUDE.md "Mode" rule 8)
@@ -93,9 +93,9 @@ The question is "does this finish sooner in parallel?", not "is this delegable?"
   by line. Briefing plus startup plus verification costs more.
 - **What stays in main:** answering the user, decisions, the critical path, and the 1–2 checks
   the result hinges on.
-- **Practice 01 lesson:** routes and import tests were written one after the other although they
-  were independent, and 6 full-suite runs ran in the foreground. Together that was about 10
-  minutes of the user waiting.
+- **Typical loss:** independent routes and import tests written one after the other, and
+  full-suite runs waited on in the foreground. Together that is easily 10 minutes of the user
+  waiting.
 
 **Debug** → delegate log scraping / EXPLAIN collection to Haiku; keep hypothesis selection.
 

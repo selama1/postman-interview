@@ -36,9 +36,9 @@ Read in this order:
 Per anomaly class choose: **reject** (exclude + report by `_row`), **coerce** (trim/lower/parse
 with a documented rule), or **keep raw** (nullable). Units/currency normalisation. Timezone of
 naive timestamps. Record in `docs/decisions.md`.
-- **Mixed precision:** a date-only value (`6/18/3025`) is not midnight. Any comparison with a
+- **Mixed precision:** a date-only value (`6/18/2024`) is not midnight. Any comparison with a
   full timestamp must allow the same day: compare `::date` when either side was date-only, or
-  keep a precision flag. Practice 01: all 83 "shipped before booked" rejects were this artifact.
+  keep a precision flag. Left unchecked, it fills a reject category with false "X before Y" rows.
 - **Implausible counts:** before reporting a reject category over a few dozen rows, check it
   isn't produced by our own conversion (CLAUDE.md "Mode" rule 6).
 

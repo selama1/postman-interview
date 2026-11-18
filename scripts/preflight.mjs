@@ -31,7 +31,23 @@ console.log('== Preflight: is this machine ready for the live session? ==\n');
 
 // --- repo ---
 const branch = run('git', ['rev-parse', '--abbrev-ref', 'HEAD']).out;
-add(branch === 'main' ? 'PASS' : 'WARN', 'on branch main', branch, 'git switch main (practice work lives in the practice worktree)');
+add(branch === 'main' ? 'PASS' : 'FAIL', 'on branch main', branch, 'git switch main (other work belongs in a separate clone)');
+// The interview clone holds main and nothing else: no other branch, worktree or stash, and no
+// untracked or ignored files beyond the regenerable and personal ones below. Anything else could
+// be read by the agent during the session.
+const extraBranches = run('git', ['for-each-ref', '--format=%(refname:short)', 'refs/heads']).out.split(/\r?\n/).filter((b) => b && b !== 'main');
+add(extraBranches.length ? 'FAIL' : 'PASS', 'only main in this clone', extraBranches.join(', '),
+  'move them to the practice clone (git push <practice clone> <branch>), then git branch -D <branch>');
+const worktrees = run('git', ['worktree', 'list', '--porcelain']).out.split(/\r?\n/).filter((l) => l.startsWith('worktree ')).length;
+add(worktrees > 1 ? 'FAIL' : 'PASS', 'no linked worktrees', worktrees > 1 ? `${worktrees - 1} linked` : '', 'git worktree list; remove them (their work belongs in a separate clone)');
+const stashes = run('git', ['stash', 'list']).out;
+add(stashes ? 'FAIL' : 'PASS', 'no stashes', stashes ? `${stashes.split('\n').length} stash(es)` : '', 'git stash list; apply them in the practice clone or drop them');
+const ALLOWED_EXTRA = /^(\.env|\.claude\/settings\.local\.json|(packages\/[^/]+\/)?node_modules\/)/;
+const extra = run('git', ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory']).out
+  .concat('\n', run('git', ['ls-files', '--others', '--exclude-standard', '--directory']).out)
+  .split(/\r?\n/).filter((p) => p && !ALLOWED_EXTRA.test(p));
+add(extra.length ? 'FAIL' : 'PASS', 'no stray untracked or ignored files', extra.slice(0, 5).join(', ') + (extra.length > 5 ? ` (+${extra.length - 5})` : ''),
+  'git clean -ndx shows them; move what you need to the practice clone, then remove them (data/ must be empty before the session)');
 const dirty = run('git', ['status', '--porcelain']).out;
 add(dirty ? 'WARN' : 'PASS', 'working tree clean', dirty ? `${dirty.split('\n').length} change(s)` : '', 'commit or stash before the session so every live diff is yours');
 const fetched = run('git', ['fetch', '--quiet', 'origin'], { timeout: 15_000 }).ok;

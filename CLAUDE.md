@@ -11,17 +11,16 @@ Rules use the same format: rule → **Why** (the incident) → **How to apply**.
 
 ## Mode: interview (the default) or prep
 
-**Interview mode is the default in this repo**, including the practice worktree. **Prep mode**
-(harness and tooling work, like building this scaffold) applies only when the user says so: "prep
-mode", "we're preparing", "harness work". It ends when they say "interview mode", "I'm in the
-interview", "practice", or start a practice problem. If unsure, it's interview mode. The session
-brief prints the mode. In prep mode, everything below this section applies as written.
+**Interview mode is the default in this repo.** **Prep mode** (harness and tooling work, like
+building this scaffold) applies only when the user says so: "prep mode", "we're preparing",
+"harness work". It ends when they say "interview mode" or "I'm in the interview". If unsure, it's
+interview mode. The session brief prints the mode. In prep mode, everything below this section
+applies as written.
 
-**Why:** (2026-11-16, practice 01) about a third of a 50-minute session produced what an
-interviewer would see. The rest was full-suite reruns, a five-lens review, tooling fixes and
-deep probes nobody asked for, while the user waited. A real session is about 45 minutes with
-follow-up questions, and the user's own auditing is worth more than the agent's thoroughness.
-Speed is the constraint; correctness stays non-negotiable.
+**Why:** the live session is about 45 minutes with follow-up questions. Full-suite reruns,
+multi-lens reviews and probes nobody asked for leave the user waiting, and the user's own
+auditing is worth more than the agent's thoroughness. Speed is the constraint; correctness stays
+non-negotiable.
 
 **Rules in interview mode** (they narrow, never replace, the principles below):
 1. **Quick answer first, then offer more.** Answer in 1–3 minutes from what one pass shows, as
@@ -32,9 +31,6 @@ Speed is the constraint; correctness stays non-negotiable.
    you'd say "done", not after each step. §3 still holds: no "done" without them.
 3. **Fix-or-queue (§11) with a stricter bar.** Fix only what blocks the current answer. Say
    everything else in one line ("found X, queued") and queue it in `docs/followups/`.
-   - **In practice:** a tool or harness bug that would matter in the real interview IS fixed (on
-     `main`, then merged into practice), but its time is **deducted from the practice timer**.
-     Say "pausing the clock: fixing <tool>" before and "clock resumes" after.
 4. **No multi-agent review unless asked.** At most a one-line self-check of the riskiest point
    before saying done. Run `lens-review` only on request.
 5. **Fewer blocking questions.** For a decision with a sound default, state it in one line ("I'm
@@ -42,8 +38,8 @@ Speed is the constraint; correctness stays non-negotiable.
    is defensible, or the choice is costly to reverse. Batch any open questions into one ask.
 6. **Sanity-check implausible numbers before reporting them.** Ask "is this the data or our
    conversion?" when a reject or anomaly category exceeds a few dozen rows.
-   - **Why:** in practice 01, all 83 "shipped before booked" rejects were artifacts: date-only
-     values read as midnight. Five reviewers and the row accounting missed it.
+   - **Why:** a large reject category is often our own artifact, e.g. date-only values read as
+     midnight make every same-day pair look out of order. Reviews and row accounting miss it.
 7. **Short replies.** Lead with the answer. Tables over prose, no recaps of earlier turns.
    Narrate tradeoffs in one sentence each, so the user can repeat them to the interviewers.
 
@@ -66,28 +62,21 @@ Speed is the constraint; correctness stays non-negotiable.
    - **Main owns every shared resource** (git, the dev stack, migrations and staging on the dev
      DB, `.env`) unless a prompt hands one over explicitly. One writer per file. Ownership table:
      skill `orchestrate`.
-   - **Why:** practice 01 ran the routes and the import tests one after the other although they
-     were independent (about 5 min lost), and waited in the foreground on 6 full-suite runs.
+   - **Why:** running independent pieces one after the other, and waiting in the foreground on
+     full-suite runs, costs minutes of the user's 45.
 
 9. **Doc first, then reviewable slices** (the live round's real format). The first deliverable
    is a design doc the user steers (skill `design-doc`): the agent drafts it in about 3 minutes,
    marks every choice Proposed, and writes **no code until the user says approved**. Then each
    slice of about 10 minutes ends with skill `slice-review` (the lines to read, the
    assumptions, the proof), and the agent waits for "next".
-   - **Why:** (2026-11-16, recruiter email) the interviewers first watch the user and agent
-     write the doc, then watch how the user manages and reviews the AI's output. In practice
-     02, the agent built before the design discussion, and the user never read the code.
+   - **Why:** in the live round the interviewers first watch the user and agent write the
+     doc, then watch how the user manages and reviews the AI's output. Code before the design
+     discussion, or code the user never read, fails both.
 
-**Pre-interview handover.** When the user says "clean up practice", "archive practice" or "get
-ready for the interview", do all of this without further questions. It's reversible, and the
-request is the go-ahead.
-1. `node practice/tools/practice-archive.mjs status`, then `archive` (add `--commit-wip` if a
-   worktree is dirty). It must end with `CLEAN`. Tell the user where the backup is.
-2. Back on `main` in `C:\devel\postman-interview`: `git status` clean, in sync with `origin/main`,
-   `pnpm stack:up`, then `pnpm preflight` → GO.
-3. Remind them of the one thing the archive can't do: archive the practice sessions in the Claude
-   app sidebar.
-4. Confirm in one line: "Interview mode on, practice archived at <path>, preflight GO."
+**Before the interview:** this directory is a clean clone of `origin/main` and nothing else.
+`pnpm preflight` checks it (only `main`, no stray untracked or ignored files, empty `data/`).
+Prep and harness work happen in a separate clone and reach this one only through `origin/main`.
 
 ---
 
@@ -282,15 +271,10 @@ or not, gets exactly one of two outcomes:
 - Verify the 1–2 facts your decision hinges on yourself instead of trusting a summary.
 
 ## Git
-- `main` = the vanilla interview submission. **Practice code never lands on main** (the
-  `pre-commit` hook blocks `practice/` paths on main). Practice lives on the `practice` branch /
-  `C:\devel\postman-interview-practice` worktree, one `practice-<nn>-<slug>` branch per attempt.
-  (A dash, not a slash: git cannot hold `practice` and `practice/...` branches at once.) To clear
-  this machine for the interview: `node practice/tools/practice-archive.mjs archive` (in the
-  practice worktree; reversible, verified backup outside `C:\devel`).
+- `main` = the vanilla interview submission, and the only branch in this clone.
 - `origin` = the PUBLIC GitHub repo `selama1/postman-interview` (the submission link): `main`
-  only. **Practice work stays local, never pushed.** The `pre-push` hook blocks practice branches
-  and any commit containing `practice/`. Never bypass it with `--no-verify`; that call is the user's.
+  only. The `pre-commit` and `pre-push` hooks refuse `practice/` paths on `main` and pushes of `practice*` branches.
+  Never bypass them with `--no-verify`; that call is the user's.
 - Commit when the work is complete and tested — don't wait to be asked. One commit per coherent
   unit. Stage only relevant files; leave `git status` clean. **Never push unless asked.**
 - Commit subject: `area: behaviour, phrased as an outcome` (e.g. `shipments: list is keyset-paginated and filterable by status`).
