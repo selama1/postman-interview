@@ -23,7 +23,7 @@
       "Bash(pnpm data:*)",
       "Bash(pnpm gen:resource*)",
       "Bash(pnpm migrate*)",
-      "Bash(pnpm up*)",
+      "Bash(pnpm stack:up*)",
       "Bash(pnpm db:test:up*)",
       "Bash(pnpm dc ps*)",
       "Bash(pnpm dc logs*)",
