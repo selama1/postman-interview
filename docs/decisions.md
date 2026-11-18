@@ -11,6 +11,16 @@ them. Newest first. Format:
 - Consequences: <what this commits us to; what would make us revisit>
 ```
 
+## 2026-11-18 — Live round's "app of your choice": a typed SDK plus a CLI built on it
+- Context: the live round asks for a user- or agent-facing application of the candidate's
+  choice, after a design doc. Client components wait for the live portion, so only the recipe
+  is prepared (skill `sdk-cli`).
+- Options: MCP server for agents on a thin SDK / SDK + CLI (chosen) / small web UI.
+- Decided by: user.
+- Consequences: SDK types generated from `/openapi.json` (openapi-typescript cached by
+  `pnpm warm`); CLI on `node:util` parseArgs with `--json` and exit codes for agents; test mode
+  per skill `client-surface`. The per-item choices are re-proposed in the live design doc.
+
 ## 2026-11-14 — UI tests, if any, run on the host; no browser in the Docker test image
 - Context: a basic UI may be requested live; automated UI tests probably won't be. A browser in
   the `tests` image costs 400–500 MB and 2–4 minutes of build (Chromium + Debian libraries).

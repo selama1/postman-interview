@@ -5,6 +5,8 @@ description: Build or change anything that consumes the HTTP API: a TypeScript S
 
 # Client surfaces (SDK / CLI / Postman) — test mode on by default
 
+For the live round's SDK + CLI build (recipe, design-doc decisions, slices, demo): skill `sdk-cli`.
+
 A client that can't run against an isolated DB can't be tested honestly: its tests either share
 state (flaky, order-dependent) or mock the server (prove the mock). So every client surface
 ships with test mode as a first-class option, and its own tests use it. CLAUDE.md §2c.
