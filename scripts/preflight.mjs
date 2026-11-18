@@ -42,7 +42,9 @@ const worktrees = run('git', ['worktree', 'list', '--porcelain']).out.split(/\r?
 add(worktrees > 1 ? 'FAIL' : 'PASS', 'no linked worktrees', worktrees > 1 ? `${worktrees - 1} linked` : '', 'git worktree list; remove them (their work belongs in a separate clone)');
 const stashes = run('git', ['stash', 'list']).out;
 add(stashes ? 'FAIL' : 'PASS', 'no stashes', stashes ? `${stashes.split('\n').length} stash(es)` : '', 'git stash list; apply them in the practice clone or drop them');
-const ALLOWED_EXTRA = /^(\.env|\.claude\/settings\.local\.json|(packages\/[^/]+\/)?node_modules\/)/;
+// Test reports are allowed: in this clone they come only from this clone's own runs (pnpm test,
+// pnpm test:e2e), so they hold nothing from elsewhere.
+const ALLOWED_EXTRA = /^(\.env|\.claude\/settings\.local\.json|(packages\/[^/]+\/)?node_modules\/|\.test-reports\/|\.e2e-reports\/)/;
 const extra = run('git', ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory']).out
   .concat('\n', run('git', ['ls-files', '--others', '--exclude-standard', '--directory']).out)
   .split(/\r?\n/).filter((p) => p && !ALLOWED_EXTRA.test(p));
