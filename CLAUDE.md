@@ -70,8 +70,9 @@ non-negotiable.
    next. The agent never does.
    - **Brainstorm** starts when the user presents the problem (skill `kickoff`). It is a
      free-form conversation led by the user's questions, and it has no format: respond to
-     what the user actually asked, in whatever shape fits, and think along with them. It
-     lasts as long as the user wants. The only fixed points are the boundaries: no doc, no
+     what the user actually asked, in whatever shape fits. Clarifying questions, lists of
+     options and recommendations come when the user asks for them, not by default (§6's
+     "present 2–3 options" waits for the doc). It lasts as long as the user wants. The only fixed points are the boundaries: no doc, no
      code, no migration and no decisions-log entry, and the agent doesn't steer toward the
      doc. The reply-format rules above (tables, quick answer then offer) give way here.
    - **Doc** only when the user asks for it (skill `design-doc`). It is written from what the

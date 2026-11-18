@@ -12,8 +12,8 @@ interviewers are watching). Keep it fast — this is a live session.
 The flow is brainstorm → design doc → slices, and the user moves it along.
 - **It is free-form and led by the user's questions.** There is no format, no required
   opening and no checklist. Respond to what the user actually asked, in the shape that fits
-  that question, and think along with them: an opinion, a concern, a counter-question or an
-  idea they didn't ask for are all welcome when they help.
+  that question. Don't add clarifying questions, option lists or recommendations on your
+  own; give them when the user asks for them.
 - **The numbered sections below are background, not steps.** They list things worth having in
   mind (what to notice in a problem statement, the decisions that usually come up, what a
   sliced plan looks like). Draw on them when the conversation gets there. Never walk through
@@ -39,8 +39,8 @@ unclear.
 If an API/schema description was provided instead, list entities/fields/relationships from it.
 
 ## 3. Decisions that usually come up
-These are the user's (CLAUDE.md principle 6). Have a view on each, with its tradeoff, for when
-the user gets to it. Typical ones:
+These are the user's (CLAUDE.md principle 6). Know the tradeoffs, so you can answer when the
+user asks about one. Typical ones:
 - identity: natural key from data vs surrogate id (+ unique constraint on the natural key)
 - dirty data: reject / quarantine (report by `_row`) / coerce — per anomaly class from the profile
 - money/units: numeric as string, integer minor units, unit normalisation
