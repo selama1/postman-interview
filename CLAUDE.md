@@ -65,14 +65,23 @@ non-negotiable.
    - **Why:** running independent pieces one after the other, and waiting in the foreground on
      full-suite runs, costs minutes of the user's 45.
 
-9. **Doc first, then reviewable slices** (the live round's real format). The first deliverable
-   is a design doc the user steers (skill `design-doc`): the agent drafts it in about 3 minutes,
-   marks every choice Proposed, and writes **no code until the user says approved**. Then each
-   slice of about 10 minutes ends with skill `slice-review` (the lines to read, the
-   assumptions, the proof), and the agent waits for "next".
-   - **Why:** in the live round the interviewers first watch the user and agent write the
-     doc, then watch how the user manages and reviews the AI's output. Code before the design
-     discussion, or code the user never read, fails both.
+9. **Brainstorm, then the doc, then reviewable slices** (the user's expected flow, 2026-11-18;
+   a prompt from the user can change it). The user moves the session from one phase to the
+   next. The agent never does.
+   - **Brainstorm** starts when the user presents the problem (skill `kickoff`). It is a
+     conversation: answer the user's questions, clarify, and when asked for approaches give
+     2–3 with a recommendation and a one-line tradeoff each. It lasts as long as the user
+     wants. Write no doc, no code, no migration and no decisions-log entry, and don't ask
+     "shall I write the doc?".
+   - **Doc** only when the user asks for it (skill `design-doc`). It is written from what the
+     brainstorm settled: choices the user made there are Decided (user), the rest Proposed.
+     **No code until the user says approved.**
+   - **Slices** of about 10 minutes each end with skill `slice-review` (the lines to read, the
+     assumptions, the proof), and the agent waits for "next".
+   - **Why:** in the live round the interviewers first watch the user and agent reach an
+     approach and write the doc, then watch how the user manages and reviews the AI's output.
+     A doc or code that arrives before the user asked for it takes the lead away from the
+     user. Code the user never read fails the review part.
 
 **Before the interview:** this directory is a clean clone of `origin/main` and nothing else.
 `pnpm preflight` checks it (only `main`, no stray untracked or ignored files, empty `data/`).

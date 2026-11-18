@@ -1,6 +1,6 @@
 ---
 name: design-doc
-description: The first deliverable of the live-coding round. The user and the agent write a design / implementation doc together before any code. The agent drafts fast, the user steers and decides, and nothing is built until the user says "approved". Use when the interviewer or user asks for a design doc, an implementation plan, "plan it first", or hands over the problem and data at the start of the live session.
+description: The first written deliverable of the live-coding round, produced when the user asks for it at the end of the brainstorm. The agent drafts a design / implementation doc fast from what the brainstorm settled, the user steers and decides, and nothing is built until the user says "approved". Use when the interviewer or user asks for a design doc, an implementation plan, "write it up" or "plan it first". Do NOT use just because the problem or data was handed over - that starts the brainstorm (skill kickoff).
 ---
 
 # Design doc: plan with the user, then build
@@ -11,10 +11,13 @@ step is not to be rushed into code.
 
 ## Protocol (what the user sees)
 
-1. **Skeleton in about 3 minutes.** Run `pnpm data:recon data/raw` if data was handed over
-   (skill `kickoff` §2). Then write `docs/design/<slug>.md` from the template below, filled in
-   from the prompt and the recon. Every decision is marked **Proposed**, with options and a
-   recommendation.
+0. **Only at the user's prompt.** The brainstorm (skill `kickoff`) comes first and the user
+   ends it by asking for this doc. Don't start the doc, or offer to, before that.
+1. **Draft in about 3 minutes.** Run `pnpm data:recon data/raw` if data was handed over and
+   the brainstorm didn't already (skill `kickoff` §2). Then write `docs/design/<slug>.md` from
+   the template below, filled in from the prompt, the recon and the brainstorm. A choice the
+   user made in the brainstorm is **Decided (user)** with their reason. Every other decision
+   is **Proposed**, with options and a recommendation. Don't reopen what the user settled.
 2. **Show it and stop.** Reply with a short table, not the whole doc:
    - the 3–5 decisions to make, each with your recommendation and a one-line tradeoff;
    - the open questions, batched;

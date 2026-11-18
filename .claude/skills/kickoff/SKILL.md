@@ -1,12 +1,24 @@
 ---
 name: kickoff
-description: Start of the live session (or any new problem statement / dataset handed over). Turns the prompt + data into a recorded understanding, a profiled dataset, decisions to confirm with the user, and a phased plan with verification — before writing feature code. Use when the user pastes a task description, hands over data files, or says "here's the problem".
+description: Start of the live session (or any new problem statement / dataset handed over). Opens the brainstorm - restates the problem, profiles the data, and discusses approaches and decisions with the user, who leads. Writes no doc and no code; the design doc comes only when the user asks for it. Use when the user pastes a task description, hands over data files, says "here's the problem", or wants to brainstorm or discuss approaches.
 ---
 
-# Kickoff: from problem statement to a plan in ~10 minutes
+# Kickoff: the brainstorm, from problem statement to an agreed approach
 
 Goal: understand before building, and make the tradeoffs visible early (that is what the
 interviewers are watching). Keep it fast — this is a live session.
+
+## The brainstorm is the user's (CLAUDE.md "Mode" rule 9)
+The flow is brainstorm → design doc → slices, and the user moves it along.
+- Steps 1–2 below are the opening reply. After that, follow the user: answer what they ask,
+  clarify, and when they ask for approaches give 2–3 with a recommendation and a one-line
+  tradeoff each.
+- Steps 3–4 are material to bring into the conversation as it reaches them, not a script to
+  run through. Don't dump every decision at once.
+- Write no design doc, code, migration or `docs/decisions.md` entry during the brainstorm, and
+  don't ask "shall I write the doc?". The brainstorm ends when the user asks for the doc
+  (skill `design-doc`). It may be two messages or twenty.
+- Keep track of what the user settled, in their words. The doc marks those Decided (user).
 
 ## 1. Restate (1–2 min)
 Write back, in 5–8 bullets: the actors (customers? stakeholders? regulator?), the entities, the
@@ -33,8 +45,8 @@ recommendation + one-line tradeoff. Typical ones:
   If keys are introduced, they follow CLAUDE.md §2d: live vs test environment on every key.
   Only the actor/role axis is a decision to ask about.
 - immutability/audit for regulator-facing data
-Ask them in one compact message. Record answers in `docs/decisions.md` as the user's.
-In interview mode, state the default for each and proceed. Ask only where no default is defensible.
+Raise the ones the conversation has reached, with your default for each. They are recorded in
+`docs/decisions.md` as the user's when the design doc is approved, not during the brainstorm.
 
 ## 4. Phased plan with verification
 ```
@@ -47,9 +59,10 @@ Phase C: <stretch> — or queue in docs/followups/
 Prefer a thin vertical slice that works end-to-end through the container over broad half-built
 layers. Each phase ends committed and green.
 
-In the live-coding round, steps 1–4 are written as the design doc (skill `design-doc`), in
-`docs/design/<slug>.md`, and the user steers it. No code before the user approves it.
+When the user asks for the doc, what steps 1–4 produced is written as the design doc (skill
+`design-doc`), in `docs/design/<slug>.md`, and the user steers it. No code before the user
+approves it.
 
-## 5. Go
+## 5. Go (after the doc is approved)
 Run skill `feature` for each slice, and end each one with skill `slice-review`. Use
 `orchestrate` to parallelize recon and bounded implementation once contracts are fixed.

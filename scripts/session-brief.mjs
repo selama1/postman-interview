@@ -25,6 +25,7 @@ const dirty = (sh('git', ['status', '--porcelain']) ?? '').split('\n').filter(Bo
 lines.push(`[session-brief] branch: ${branch}${dirty ? ` · ${dirty} uncommitted change(s)` : ' · clean'}`);
 // Interview mode is the default everywhere (CLAUDE.md "Mode"); prep mode only on the user's word.
 lines.push('  MODE: interview (default). Quick answers, tight test loop, no review unless asked. The user says "prep mode" for harness work. CLAUDE.md "Mode".');
+lines.push('  FLOW: brainstorm when the user presents the problem (no doc, no code) -> design doc when the user asks for it -> code after "approved", in reviewed slices. The user moves between phases. CLAUDE.md "Mode" rule 9.');
 if (branch === 'main') lines.push('  main = the interview submission; this clone holds main only (pnpm preflight checks it).');
 
 const fu = existsSync('docs/followups') ? readdirSync('docs/followups').filter((f) => /^\d{4}-\d{2}-\d{2}-.*\.md$/.test(f)) : [];
