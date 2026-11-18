@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -19,7 +19,8 @@ describe('data:recon (CLI) reports everything that affects an import', () => {
   const recon = (dir: string) =>
     spawnSync(process.execPath, ['--import', 'tsx', 'scripts/data/recon.ts', dir], {
       cwd: testEnv.root,
-      env: { ...process.env, DATABASE_URL: t.db!.url },
+      // Reports go to a temp dir: a test run must never write into the repo's data/ folder.
+      env: { ...process.env, DATABASE_URL: t.db!.url, DATA_OUT_DIR: path.join(root, 'out') },
       encoding: 'utf8',
     });
 
@@ -55,6 +56,9 @@ describe('data:recon (CLI) reports everything that affects an import', () => {
     const r = recon(dir);
     expect(r.status, `recon failed:\n${r.stdout}\n${r.stderr}`).toBe(0);
     const out = r.stdout;
+    // The saved report lands in DATA_OUT_DIR, not in the repo's data/out.
+    expect(readFileSync(path.join(root, 'out', 'recon.md'), 'utf8')).toContain('parcels');
+    expect(existsSync(path.join(testEnv.root, 'data', 'out', 'recon.md'))).toBe(false);
 
     // Files: row counts, BOM
     expect(out).toMatch(/\| `parcels` \| parcels\.csv \| 14 \| 5 \|/);

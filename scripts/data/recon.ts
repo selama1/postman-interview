@@ -634,9 +634,10 @@ async function recon(args: string[]): Promise<number> {
     out.push('', '## Decisions you will need', '', ...(decisions.length ? decisions.map((d, i) => `${i + 1}. ${d}`) : ['none: nothing in the data needs a ruling']));
     const md = out.join('\n');
     console.log(md);
-    mkdirSync('data/out', { recursive: true });
-    writeFileSync('data/out/recon.md', `${md}\n`);
-    console.error('\n(report saved to data/out/recon.md)');
+    const outDir = process.env.DATA_OUT_DIR || 'data/out'; // tests point this at a temp dir
+    mkdirSync(outDir, { recursive: true });
+    writeFileSync(path.join(outDir, 'recon.md'), `${md}\n`);
+    console.error(`\n(report saved to ${path.join(outDir, 'recon.md')})`);
     const failed = tables.filter((t) => t.error);
     for (const t of failed) console.error(`recon: ${t.file}: ${t.error!.message}${t.error!.fix ? ` Fix: ${t.error!.fix}` : ''}`);
     return failed.length ? 1 : 0;

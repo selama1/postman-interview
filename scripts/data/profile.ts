@@ -13,6 +13,7 @@
  * Writes the markdown report to stdout and data/out/profile-<schema>.<table>.md.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import pg from 'pg';
 import { argValue, databaseUrl, quoteIdent as q } from './util.js';
 
@@ -145,9 +146,10 @@ async function main() {
     );
     const md = out.join('\n');
     console.log(md);
-    mkdirSync('data/out', { recursive: true });
-    writeFileSync(`data/out/profile-${schema}.${table}.md`, md);
-    console.error(`\n(report saved to data/out/profile-${schema}.${table}.md)`);
+    const outDir = process.env.DATA_OUT_DIR || 'data/out'; // tests point this at a temp dir
+    mkdirSync(outDir, { recursive: true });
+    writeFileSync(path.join(outDir, `profile-${schema}.${table}.md`), md);
+    console.error(`\n(report saved to ${path.join(outDir, `profile-${schema}.${table}.md`)})`);
   } finally {
     await c.end();
   }
