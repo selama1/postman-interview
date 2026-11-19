@@ -28,6 +28,11 @@ health, the DB round trip, migrations, error format and test mode.
 sh scripts/smoke.sh              # add --failover to also stop the DB and watch the service recover
 ```
 
+**Narrated demo.** `pnpm demo` walks through the connection step by step (containers, a real query
+through the service, the same data seen from psql, a DB outage and recovery) and prints each
+step's purpose, its exact command, the output and PASS/FAIL. Add `--smoke` to finish with the
+smoke test, or `--no-outage` to leave the DB running.
+
 ```
 PASS  GET /health/db -> 200: service ran a real query on Postgres 17.12 (database "app", 10.2 ms)
 ...
